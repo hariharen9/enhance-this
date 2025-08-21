@@ -10,23 +10,20 @@ def load_templates(custom_template_paths: Optional[Dict[str, str]] = None) -> Di
     package = 'enhance_this.templates'
     
     # Load built-in templates
-    for style in ["detailed", "concise", "creative", "technical"]:
+    built_in_styles = ["detailed", "concise", "creative", "technical", "json", "bullets", "summary", "formal", "casual"]
+    for style in built_in_styles:
         try:
-            # Use read_text directly for simplicity and robustness
             content = importlib.resources.read_text(package, f"{style}.txt")
             templates[style] = content
         except FileNotFoundError:
-            # Raise a specific error if a built-in template is not found
-            raise RuntimeError(f"Built-in template file not found: {package}/{style}.txt. This indicates a packaging issue.")
-        except Exception as e:
-            # Raise a specific error for other issues
-            raise RuntimeError(f"Error reading built-in template {style}.txt: {e}. This indicates a packaging issue or corruption.")
+            # This should not happen with built-in templates
+            console.print(f"[red]✖[/red] Built-in template for style '{style}' not found.")
 
     # Load custom templates from config
     if custom_template_paths:
         for style, path_str in custom_template_paths.items():
-            if not isinstance(path_str, str) or not path_str.strip():
-                continue # Skip if path is not a valid string
+            if not path_str:
+                continue
             try:
                 path = Path(path_str).expanduser()
                 if path.is_file():
@@ -35,10 +32,6 @@ def load_templates(custom_template_paths: Optional[Dict[str, str]] = None) -> Di
                     console.print(f"[yellow]⚠[/yellow] Custom template for style '{style}' not found at: {path_str}")
             except Exception as e:
                 console.print(f"[red]✖[/red] Error loading custom template for style '{style}': {e}")
-
-    if not templates:
-        # This should now be unreachable if the above loop works
-        raise RuntimeError("No built-in templates were loaded. Available styles will be empty. This is unexpected.")
 
     return templates
 

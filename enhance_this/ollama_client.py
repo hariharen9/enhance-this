@@ -71,6 +71,25 @@ class OllamaClient:
                 console.print(f"[red]✖[/red] Failed to parse response from Ollama while downloading.")
                 return False
 
+    def preload_model(self, model_name: str):
+        """Sends a request to Ollama to load a model and keep it alive."""
+        try:
+            console.print(f"Preloading model '{model_name}'...")
+            response = self.session.post(
+                f"{self.host}/api/chat",
+                json={
+                    "model": model_name,
+                    "messages": [{"role": "user", "content": "Hi"}],
+                    "keep_alive": -1, # Keep alive indefinitely
+                },
+                stream=False,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            console.print(f"[green]✔[/green] Model '{model_name}' preloaded successfully.")
+        except requests.RequestException as e:
+            console.print(f"[red]✖[/red] Failed to preload model '{model_name}': {e}")
+
     def generate_stream(self, model: str, prompt: str, temperature: float, max_tokens: int) -> Iterator[str]:
         try:
                 response = self.session.post(
