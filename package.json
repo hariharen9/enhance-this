@@ -1,0 +1,23 @@
+{
+  "name": "enhance-this",
+  "version": "0.1.0",
+  "description": "A CLI tool to enhance prompts using Ollama AI.",
+  "author": "hariharen9",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hariharen9/enhance-this.git"
+  },
+  "bin": {
+    "enhance": "bin/enhance-wrapper.js"
+  },
+  "scripts": {
+    "postinstall": "pip install enhance-this --upgrade"
+  },
+  "keywords": [
+    "ai",
+    "cli",
+    "ollama",
+    "prompt-engineering"
+  ]
+}

@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+/include/
+/lib/
+/lib64/
+/local/
+
+# Distribution / build
+.Python
+build/
+dist/
+*.egg-info/
+*.eggs
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Configuration files (if generated locally and not meant for repo)
+# ~/.enhance-this/config.yaml is user-specific, so it should not be committed.
+# The default config is created by the tool.
+.enhance-this/
+
+# Ollama models (downloaded, not source code)
+# Assuming Ollama stores models in a default location or a user-defined one
+# If models are stored within the project directory, add specific paths here.
+# For example, if you have a 'models' directory:
+# models/
+
+# Test reports
+.pytest_cache/
+.coverage
+htmlcov/
+
+# NPM wrapper build artifacts
+node_modules/
+
+# Homebrew tap (if you develop the tap within the main repo, which is uncommon)
+# Formula/
