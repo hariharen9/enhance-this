@@ -143,4 +143,4 @@ We're always looking to make `enhance-this` even better! If you have ideas, spot
 This project is open-source and available under the MIT License - see the [LICENSE](./LICENSE) file for more details.
 
 ---
-*This README was crafted and enhanced by Gemini to make `enhance-this` even more accessible and exciting!*
+*This README was crafted and enhanced by this tool `enhance-this` with AI prompt to Gemini*
