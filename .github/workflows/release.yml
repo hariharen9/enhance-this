@@ -60,6 +60,6 @@ jobs:
         with:
           formula-name: enhance-this
           homebrew-tap: hariharen9/homebrew-tap
-          base-branch: master
+          base-branch: main
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
