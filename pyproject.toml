@@ -25,6 +25,9 @@ dependencies = [
     "importlib-resources; python_version < '3.9'",
 ]
 
+[options.package_data]
+"enhance_this" = ["templates/*.txt"]
+
 [project.urls]
 "Homepage" = "https://github.com/hariharen9/enhance-this"
 "Bug Tracker" = "https://github.com/hariharen9/enhance-this/issues"

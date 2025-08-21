@@ -116,6 +116,7 @@ def main(prompt, model_name, temperature, max_tokens, config_path, verbose, no_c
     auto_copy_enabled = not no_copy and config.get('auto_copy', True)
 
     enhancer = PromptEnhancer(config.get('enhancement_templates'))
+
     system_prompt = enhancer.enhance(prompt, final_style)
 
     if verbose:

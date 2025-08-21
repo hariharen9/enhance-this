@@ -2,7 +2,8 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/enhance-this?style=for-the-badge)](https://pypi.org/project/enhance-this/)
 [![npm - Version](https://img.shields.io/npm/v/enhance-this?style=for-the-badge)](https://www.npmjs.com/package/enhance-this)
-[![Homebrew - Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fformulae.brew.sh%2Fapi%2Fformula%2Fenhance-this.json&query=%24.versions.stable&label=homebrew&style=for-the-badge)](https://formulae.brew.sh/formula/enhance-this)
+[![Homebrew - Version](https://img.shields.io/github/v/release/hariharen9/enhance-this?style=for-the-badge&label=homebrew)](https://github.com/hariharen9/homebrew-tap)
+
 [![License](https://img.shields.io/github/license/hariharen9/enhance-this?style=for-the-badge)](LICENSE)
 
 <!-- **`enhance-this`** is a powerful and reliable command-line tool designed to elevate your prompts for AI models. It takes your initial ideas, enhances them into rich and specific instructions using local AI models (Ollama), and then instantly copies the refined prompt to your clipboard. It acts as your personal prompt engineering assistant, running directly on your computer. -->

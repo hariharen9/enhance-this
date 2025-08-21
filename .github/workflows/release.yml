@@ -6,6 +6,72 @@ on:
   workflow_dispatch:
 
 jobs:
+  build-executables:
+    name: Build Executable for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target_name: linux
+            executable_ext: ""
+          - os: macos-latest
+            target_name: macos
+            executable_ext: ""
+          - os: windows-latest
+            target_name: windows
+            executable_ext: ".exe"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . # Install project in editable mode to resolve dependencies
+          pip install pyinstaller
+
+      - name: Build executable with PyInstaller
+        run: |
+          pyinstaller --onefile enhance_this/cli.py --name enhance-this-${{ matrix.target_name }}
+          # PyInstaller output is in 'dist' folder
+          ls -l dist/
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: enhance-this-${{ matrix.target_name }}
+          path: dist/enhance-this-${{ matrix.target_name }}${{ matrix.executable_ext }}
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: build-executables # Depends on executables being built
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create a release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all executables
+        uses: actions/download-artifact@v4
+        with:
+          path: release_artifacts
+
+      - name: List downloaded artifacts
+        run: ls -R release_artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release_artifacts/**/* # Attach all downloaded executables
+          generate_release_notes: true # Auto-generate release notes from commits
+
   build-and-publish:
     name: Build and Publish to PyPI
     runs-on: ubuntu-latest
@@ -33,7 +99,7 @@ jobs:
 
   publish-npm:
     name: Publish to NPM
-    needs: build-and-publish
+    needs: create-github-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +118,7 @@ jobs:
 
   update-homebrew:
     name: Update Homebrew Formula
-    needs: build-and-publish
+    needs: create-github-release
     runs-on: ubuntu-latest
     steps:
       - name: Update Homebrew Formula
