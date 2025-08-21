@@ -1,6 +1,6 @@
 {
   "name": "enhance-this",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "A CLI tool to enhance prompts using Ollama AI.",
   "author": "hariharen9",
   "license": "MIT",

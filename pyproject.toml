@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "enhance-this"
-version = "0.1.7"
+version = "0.1.8"
 authors = [
   { name="Hariharen", email="thisishariharen@gmail.com" },
 ]
