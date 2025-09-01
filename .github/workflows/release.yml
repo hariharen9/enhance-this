@@ -38,6 +38,7 @@ jobs:
           pip install pyinstaller
 
       - name: Build executable with PyInstaller
+        shell: bash
         run: |
           SEPARATOR=":"
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
