@@ -66,55 +66,14 @@ enhance "review my Python code"
 # Transform a vague question into a precise & detailed prompt
 enhance -s detailed "best places to eatout in bangalore"
 # Output: 
-# Objective: Provide an exhaustive list of top-rated restaurants in Bengaluru, considering various culinary preferences, regional specialties, and dining experiences.  
-
-# Scope:  
-
-# 1. Cuisine Analysis: Include a range of international and local cuisines, such as North Indian, South Indian (including dosa, idli, and vada), Chinese, Italian, Mexican, and Middle Eastern.  
-# 2. Dining Experience: Cover various settings, including:  
-#    - Fine dining restaurants with upscale ambiance  
-#    - Casual eateries with outdoor seating or street food options  
-#    - Specialty cafes serving coffee, pastries, or desserts  
-# 3. Regional Focus: Highlight local favorites and hidden gems in specific neighborhoods or areas, such as:  
-#    - HSR Layout  
-#    - Koramangala  
-#    - Indiranagar  
-#    - Electronic City  
-# 4. Food Quality and Safety: Prioritize restaurants with high food quality ratings, excellent hygiene standards, and a strong reputation for serving fresh ingredients.  
-
-# Deliverables:  
-
-# 1. A comprehensive list of 20–25 top-rated restaurants in Bengaluru, including:  
-#    - Restaurant name  
-#    - Address (with nearest landmark or metro station)  
-#    - Cuisine type(s) served  
-#    - Average rating (based on online reviews)  
-# 2. A brief description (1–2 paragraphs) for each restaurant, highlighting its unique features, specialties, and any notable awards or recognition.  
-# 3. Recommendations for the best restaurants in Bengaluru for:  
-#    - Vegetarians and vegans  
-#    - Non-vegetarians (including meat and seafood options)  
-#    - Families with young children  
-#    - Couples looking for a romantic dinner  
-
-# Constraints:  
-
-# 1. Filter by Rating: Only include restaurants with an average rating of 4 or higher on review platforms like Zomato, TripAdvisor, or Google Reviews.  
-# 2. Exclusion Criteria: Exclude restaurants that are:  
-#    - Closed permanently or temporarily  
-#    - Not available for dine-in (only take-out or delivery)  
-#    - Known for poor service or unhygienic conditions  
-
-# Enhanced Clarity:  
-
-# 1. Use precise and descriptive language to ensure accurate representation of each restaurant's offerings.  
-# 2. Utilize relevant keywords and phrases to facilitate easy searchability.  
-
-# Additional Analysis Dimensions:  
-
-# 1. Price Range: Provide a price range (budget-friendly, moderate, upscale) for each restaurant to help users plan their dining experience accordingly.  
-# 2. Accessibility: Note any accessibility features or considerations for visitors with disabilities.  
-# 3. Reservations and Online Ordering: Indicate if reservations are recommended or available online, as well as options for ordering food through apps or websites.  
-
+# Objective: Provide an exhaustive list of top-rated restaurants in Bengaluru, considering various 
+# culinary preferences, regional specialties, and dining experiences. Include a range of international 
+# and local cuisines, cover various settings from fine dining to casual eateries, and highlight local 
+# favorites in specific neighborhoods. Prioritize restaurants with high food quality ratings and 
+# excellent hygiene standards. Deliver a comprehensive list of 20–25 top-rated restaurants with name, 
+# address, cuisine type, and average rating. Provide brief descriptions highlighting unique features 
+# and include recommendations for different dietary preferences and occasions. Filter by rating (4+), 
+# exclude closed or delivery-only restaurants, and note accessibility features and reservation options.
 ```
 
 **Example Use Case - Content Creation:**
