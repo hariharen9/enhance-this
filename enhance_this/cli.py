@@ -108,6 +108,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
         if selected_entry:
             # Enhanced history display
+            from rich.table import Table
             history_table = Table(title="History Details", border_style="green")
             history_table.add_column("Property", style="cyan", no_wrap=True)
             history_table.add_column("Value", style="magenta")
@@ -173,31 +174,86 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
                 system_prompt = enhancer.enhance(current_prompt, current_style)
                 
-                # Enhanced loading experience
+                # Enhanced loading experience with streaming
                 enhanced_prompt = ""
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    console=console,
-                ) as progress:
-                    task = progress.add_task("[cyan]Enhancing your prompt...", total=None)
+                
+                # Use Live for streaming output with a spinner
+                with Live(console=console, auto_refresh=True, refresh_per_second=4) as live_display:
+                    # Create initial display with spinner
+                    from rich.spinner import Spinner
+                    from rich.table import Table
                     
-                    # Simulate dynamic messages
-                    for i, message in enumerate(loading_messages[:5]):
-                        progress.update(task, description=f"[cyan]{message}[/cyan]")
-                        time.sleep(0.3)  # Brief pause for visual effect
+                    # Create initial display with spinner and panel
+                    from rich.panel import Panel
                     
-                    # Actual enhancement
-                    for chunk in client.generate_stream(final_model, system_prompt, 0.7, 2000):
+                    initial_panel = Panel(
+                        "[cyan]Enhancing your prompt with AI model...[/cyan]",
+                        title="[bold blue]🚀 Enhancement in Progress[/bold blue]",
+                        border_style="cyan",
+                        expand=True,
+                        padding=(1, 2)
+                    )
+                    
+                    display_table = Table.grid(padding=1)
+                    display_table.add_column(width=5)  # For spinner
+                    display_table.add_column()
+                    display_table.add_row(Spinner("dots", style="cyan"), initial_panel)
+                    live_display.update(display_table)
+                    
+                    # Actual enhancement with streaming
+                    for i, chunk in enumerate(client.generate_stream(final_model, system_prompt, 0.7, 2000)):
                         enhanced_prompt += chunk
-                        # Update with a more specific message as enhancement progresses
-                        if len(enhanced_prompt) > 50:
-                            progress.update(task, description="[cyan]Refining the output...[/cyan]")
-                        elif len(enhanced_prompt) > 10:
-                            progress.update(task, description="[cyan]Generating content...[/cyan]")
+                        
+                        # Update display with current content
+                        if enhanced_prompt:
+                            # Show streaming content with spinner
+                            content_preview = enhanced_prompt
+                            # Show full content without artificial limits
+                            # Only add ellipsis for very long content to prevent display issues
+                            if len(content_preview) > 2000:
+                                content_preview = content_preview[:2500] + "\n...\n(content truncated for display during streaming...)"
+                            
+                            # Create a better formatted display for streaming content
+                            from rich.panel import Panel
+                            from rich.text import Text
+                                                
+                            # Create a panel with the streaming content
+                            content_panel = Panel(
+                                Text(content_preview, style="magenta"),
+                                title="[cyan]Streaming Response[/cyan]",
+                                border_style="green",
+                                expand=True,  # Allow panel to expand with content
+                                padding=(1, 2)
+                            )
+                                                
+                            # Create table with spinner and content panel
+                            from rich.spinner import Spinner
+                            display_table = Table.grid(padding=1)
+                            display_table.add_column(width=5)  # For spinner
+                            display_table.add_column()
+                            display_table.add_row(
+                                Spinner("dots9", style="green"),
+                                content_panel
+                            )
+                            live_display.update(display_table)
                     
-                    progress.update(task, description="[green]✔ Enhancement complete![/green]")
-                    time.sleep(0.5)  # Brief pause for visual feedback
+                    # Show completion with enhanced visual feedback
+                    from rich.panel import Panel
+                    
+                    completion_panel = Panel(
+                        "[green]✨ Enhancement complete! AI response generated successfully.[/green]",
+                        title="[bold green]✅ Success[/bold green]",
+                        border_style="green",
+                        expand=False,
+                        padding=(1, 2)
+                    )
+                    
+                    display_table = Table.grid(padding=1)
+                    display_table.add_column(width=5)
+                    display_table.add_column()
+                    display_table.add_row("[green]✔[/green]", completion_panel)
+                    live_display.update(display_table)
+                    time.sleep(0.8)  # Longer pause for visual feedback
                 
                 # Enhanced prompt display
                 console.print("\n[bold magenta]✨ Enhanced Prompt ✨[/bold magenta]")
@@ -249,6 +305,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
     if list_models:
         models = client.list_models()
         if models:
+            from rich.table import Table
             models_table = Table(title="Available Ollama Models", border_style="green")
             models_table.add_column("Model Name", style="cyan")
             for model in models:
@@ -341,46 +398,93 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
     enhanced_prompt = ""
     
-    # Enhanced loading experience with dynamic messages
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        task = progress.add_task("[cyan]Loading model and enhancing prompt...[/cyan]", total=None)
+    # Enhanced loading experience with dynamic messages and streaming
+    console.print("[bold blue]🤖 Generating enhanced prompt...[/bold blue]")
+    
+    try:
+        stream_generator = client.generate_stream(final_model, system_prompt, final_temperature, final_max_tokens)
         
-        # Show dynamic loading messages
-        for i, message in enumerate(loading_messages):
-            progress.update(task, description=f"[cyan]{message}[/cyan]")
-            time.sleep(0.2)  # Brief pause for visual effect
+        # Use Live for streaming output with a spinner
+        with Live(console=console, auto_refresh=True, refresh_per_second=4) as live_display:
+            # Create initial display with spinner
+            from rich.spinner import Spinner
+            from rich.table import Table
             
-            # Break early if we have a long list of messages
-            if i >= len(loading_messages) - 2:
-                break
-        
-        try:
-            stream_generator = client.generate_stream(final_model, system_prompt, final_temperature, final_max_tokens)
-
-            # Update message as we start generating
-            progress.update(task, description="[cyan]Generating enhanced prompt...[/cyan]")
-
-            # Collect the output
-            for chunk in stream_generator:
+            # Create initial display with spinner and panel
+            from rich.panel import Panel
+            
+            initial_panel = Panel(
+                "[cyan]Loading model and generating response...[/cyan]",
+                title="[bold blue]🧠 AI Generation in Progress[/bold blue]",
+                border_style="cyan",
+                expand=True,
+                padding=(1, 2)
+            )
+            
+            display_table = Table.grid(padding=1)
+            display_table.add_column(width=5)  # For spinner
+            display_table.add_column()
+            display_table.add_row(Spinner("dots", style="cyan"), initial_panel)
+            live_display.update(display_table)
+            
+            # Collect the output with streaming
+            for i, chunk in enumerate(stream_generator):
                 enhanced_prompt += chunk
-                # Update message based on progress
-                if len(enhanced_prompt) > 100:
-                    progress.update(task, description="[cyan]Polishing the output...[/cyan]")
-                elif len(enhanced_prompt) > 20:
-                    progress.update(task, description="[cyan]Building response...[/cyan]")
+                
+                # Update display with current content
+                if enhanced_prompt:
+                    # Show streaming content with spinner
+                    content_preview = enhanced_prompt
+                    # Show full content without artificial limits
+                    # Only add ellipsis for very long content to prevent display issues
+                    if len(content_preview) > 2000:
+                        content_preview = content_preview[:2500] + "\n...\n(content truncated for display during streaming...)"
+                    
+                    # Create a better formatted display for streaming content
+                    from rich.panel import Panel
+                    from rich.text import Text
+                    
+                    # Create a panel with the streaming content
+                    content_panel = Panel(
+                        Text(content_preview, style="yellow"),
+                        title="[cyan]Streaming Response[/cyan]",
+                        border_style="green",
+                        expand=True,  # Allow panel to expand with content
+                        padding=(1, 2)
+                    )
+                    
+                    # Create table with spinner and content panel
+                    from rich.spinner import Spinner
+                    display_table = Table.grid(padding=1)
+                    display_table.add_column(width=5)  # For spinner
+                    display_table.add_column()
+                    display_table.add_row(
+                        Spinner("dots", style="green"),
+                        content_panel
+                    )
+                    live_display.update(display_table)
             
-            # Completion message
-            progress.update(task, description="[green]✔ Enhancement complete![/green]")
-            time.sleep(0.3)  # Brief pause for visual feedback
-
-        except Exception as e:
-            progress.update(task, description=f"[red]✖ Error during enhancement: {e}[/red]")
-            time.sleep(1)
-            sys.exit(1)
+            # Show completion with enhanced visual feedback
+            from rich.panel import Panel
+            
+            completion_panel = Panel(
+                "[green]✨ Enhancement complete! AI response generated successfully.[/green]",
+                title="[bold green]✅ Success[/bold green]",
+                border_style="green",
+                expand=False,
+                padding=(1, 2)
+            )
+            
+            display_table = Table.grid(padding=1)
+            display_table.add_column(width=5)
+            display_table.add_column()
+            display_table.add_row("[green]✔[/green]", completion_panel)
+            live_display.update(display_table)
+            time.sleep(0.8)  # Longer pause for visual feedback
+            
+    except Exception as e:
+        console.print(f"[red]✖ Error during enhancement: {e}[/red]")
+        sys.exit(1)
 
     if enhanced_prompt:
         save_enhancement(prompt, enhanced_prompt, final_style, final_model)
