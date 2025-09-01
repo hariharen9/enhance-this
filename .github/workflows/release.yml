@@ -39,7 +39,11 @@ jobs:
 
       - name: Build executable with PyInstaller
         run: |
-          pyinstaller --onefile enhance_this/cli.py --name enhance-this-${{ matrix.target_name }}
+          SEPARATOR=":"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            SEPARATOR=";"
+          fi
+          pyinstaller --onefile enhance_this/cli.py --name enhance-this-${{ matrix.target_name }} --add-data "enhance_this/templates${SEPARATOR}enhance_this/templates"
           # PyInstaller output is in 'dist' folder
           ls -l dist/
 
