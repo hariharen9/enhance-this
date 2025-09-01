@@ -281,7 +281,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                         console.print(f"[yellow]Invalid style. Sticking with {current_style}.[/yellow]")
                 elif action == 'c':
                     copy_to_clipboard(enhanced_prompt)
-                    console.print("[green]✔ Copied to clipboard.[/green]")
                 elif action == 'q':
                     break
                 else:
@@ -529,7 +528,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
         if auto_copy_enabled:
             copy_to_clipboard(enhanced_prompt)
-            console.print("[green]✔ Enhanced prompt copied to clipboard.[/green]")
     else:
         console.print(Panel("[red]✖ Failed to generate enhanced prompt.[/red]", 
                           title="Error", border_style="red"))
