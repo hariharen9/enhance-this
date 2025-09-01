@@ -696,7 +696,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             "[yellow]This might happen if:[/yellow]\n"
             "• The model is still loading\n"
             "• The prompt is very complex\n"
-• Your system is under heavy load\n\n"
+            "• Your system is under heavy load\n\n"
             "[bold]Try:[/bold]\n"
             "• Increasing timeout in config (~/.enhance-this/config.yaml)\n"
             "• Using a smaller model\n"
