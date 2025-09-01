@@ -4,8 +4,14 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.live import Live
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
+from rich.spinner import Spinner
+from rich.table import Table
+from rich.text import Text
 import sys
 import difflib
+import time
+import random
 
 from .config import load_config, create_default_config_if_not_exists
 from .ollama_client import OllamaClient
@@ -41,10 +47,22 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
     config = load_config(config_path)
     client = OllamaClient(host=config['ollama_host'], timeout=config['timeout'])
 
+    # Custom loading messages for better UX
+    loading_messages = [
+        "Initializing enhancement engine...",
+        "Connecting to local AI model...",
+        "Preparing prompt transformation...",
+        "Loading language patterns...",
+        "Setting up creative algorithms...",
+        "Calibrating response parameters...",
+        "Warming up neural pathways...",
+        "Optimizing for maximum creativity...",
+    ]
+
     if preload_model:
         available_models = client.list_models()
         if not available_models:
-            console.print("[red]✖[/red] No models available to preload. Please run `enhance --auto-setup` first.")
+            console.print("[red]✖[/red] No models available to preload. Please run [bold]`enhance --auto-setup`[/bold] first.")
             sys.exit(1)
 
         preferred_models = config.get('preferred_models', ["llama3.1:8b", "llama3", "mistral"])
@@ -57,13 +75,22 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         if not model_to_preload:
             model_to_preload = available_models[0]
 
-        client.preload_model(model_to_preload)
+        # Enhanced preloading with visual feedback
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task(f"[cyan]Preloading model '{model_to_preload}'...", total=None)
+            client.preload_model(model_to_preload)
+            progress.update(task, description=f"[green]✔ Model '{model_to_preload}' preloaded successfully!")
+            time.sleep(1)  # Brief pause for visual feedback
         return
 
     if show_history:
         history_entries = load_history()
         if not history_entries:
-            console.print("[yellow]No history found.[/yellow]")
+            console.print(Panel("[yellow]No history found.[/yellow]", title="History", border_style="yellow"))
             return
 
         choices = [
@@ -80,13 +107,17 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         ).ask()
 
         if selected_entry:
-            console.print(Panel(
-                f"[bold]Original Prompt:[/bold]\n{selected_entry['original_prompt']}\n\n"
-                f"[bold]Enhanced Prompt:[/bold]\n{selected_entry['enhanced_prompt']}\n\n"
-                f"[bold]Style:[/bold] {selected_entry['style']} | [bold]Model:[/bold] {selected_entry['model']}",
-                title="History Details",
-                border_style="green"
-            ))
+            # Enhanced history display
+            history_table = Table(title="History Details", border_style="green")
+            history_table.add_column("Property", style="cyan", no_wrap=True)
+            history_table.add_column("Value", style="magenta")
+            
+            history_table.add_row("Original Prompt", selected_entry['original_prompt'])
+            history_table.add_row("Enhanced Prompt", selected_entry['enhanced_prompt'])
+            history_table.add_row("Style", selected_entry['style'])
+            history_table.add_row("Model", selected_entry['model'])
+            
+            console.print(history_table)
 
             if questionary.confirm("Copy enhanced prompt to clipboard?").ask():
                 copy_to_clipboard(selected_entry['enhanced_prompt'])
@@ -94,28 +125,40 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         return
 
     if is_interactive:
-        console.print("[bold green]Welcome to interactive mode![/bold green]")
-        console.print("Type 'quit' or 'exit' to end the session.")
+        # Enhanced welcome message
+        welcome_panel = Panel(
+            "[bold green]Welcome to Interactive Mode![/bold green]\n"
+            "Enhance your prompts in real-time with AI assistance.\n"
+            "[dim]Type 'quit' or 'exit' to end the session.[/dim]",
+            title="✨ Enhance This - Interactive Mode",
+            border_style="bright_blue"
+        )
+        console.print(welcome_panel)
 
         enhancer = PromptEnhancer(config.get('enhancement_templates'))
         available_styles = list(enhancer.templates.keys())
         
         if not client.is_running():
-            console.print("[red]✖[/red] Ollama service is not running or is unreachable.")
+            console.print(Panel("[red]✖ Ollama service is not running or is unreachable.[/red]\n"
+                              "[yellow]Please start Ollama and try again.[/yellow]", 
+                              title="Connection Error", border_style="red"))
             sys.exit(1)
 
         available_models = client.list_models()
         if not available_models:
-            console.print("[red]✖[/red] No models available. Please run `enhance --auto-setup` first.")
+            console.print(Panel("[red]✖ No models available.[/red]\n"
+                              "[yellow]Please run [bold]`enhance --auto-setup`[/bold] first.[/yellow]", 
+                              title="Model Error", border_style="red"))
             sys.exit(1)
 
         if model_name and model_name not in available_models:
-            console.print(f"[red]✖[/red] Model '{model_name}' not found.")
+            console.print(Panel(f"[red]✖ Model '{model_name}' not found.[/red]", 
+                              title="Model Error", border_style="red"))
             sys.exit(1)
         
         final_model = model_name or config.get('preferred_models', ["llama3.1:8b", "llama3", "mistral"])[0]
 
-        console.print(f"Using model: [cyan]{final_model}[/cyan]")
+        console.print(f"[bold blue]🤖 Using model:[/bold blue] [cyan]{final_model}[/cyan]")
         
         current_prompt = ""
         enhanced_prompt = ""
@@ -130,22 +173,51 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
                 system_prompt = enhancer.enhance(current_prompt, current_style)
                 
+                # Enhanced loading experience
                 enhanced_prompt = ""
-                with console.status("[bold green]Enhancing..."):
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                ) as progress:
+                    task = progress.add_task("[cyan]Enhancing your prompt...", total=None)
+                    
+                    # Simulate dynamic messages
+                    for i, message in enumerate(loading_messages[:5]):
+                        progress.update(task, description=f"[cyan]{message}[/cyan]")
+                        time.sleep(0.3)  # Brief pause for visual effect
+                    
+                    # Actual enhancement
                     for chunk in client.generate_stream(final_model, system_prompt, 0.7, 2000):
                         enhanced_prompt += chunk
+                        # Update with a more specific message as enhancement progresses
+                        if len(enhanced_prompt) > 50:
+                            progress.update(task, description="[cyan]Refining the output...[/cyan]")
+                        elif len(enhanced_prompt) > 10:
+                            progress.update(task, description="[cyan]Generating content...[/cyan]")
+                    
+                    progress.update(task, description="[green]✔ Enhancement complete![/green]")
+                    time.sleep(0.5)  # Brief pause for visual feedback
                 
+                # Enhanced prompt display
                 console.print("\n[bold magenta]✨ Enhanced Prompt ✨[/bold magenta]")
-                console.print(Panel(Markdown(enhanced_prompt), border_style="green"))
+                console.print(Panel(Markdown(enhanced_prompt), 
+                                  title="Enhanced Output", 
+                                  border_style="green",
+                                  expand=False))
 
                 action = console.input(
-                    "[bold]Choose action: (r)efine, (s)tyle, (c)opy, (q)uit: [/bold]"
+                    "[bold blue]Choose action:[/bold blue] "
+                    "[bold](r)[/bold]efine, "
+                    "[bold](s)[/bold]tyle, "
+                    "[bold](c)[/bold]opy, "
+                    "[bold](q)[/bold]uit: "
                 ).lower()
 
                 if action == 'r':
                     current_prompt = console.input("[bold cyan]Refine prompt: [/bold cyan]")
                 elif action == 's':
-                    console.print(f"Available styles: {', '.join(available_styles)}")
+                    console.print(f"[bold blue]Available styles:[/bold blue] {', '.join(available_styles)}")
                     new_style = console.input(f"[bold cyan]New style ({current_style}): [/bold cyan]")
                     if new_style in available_styles:
                         current_style = new_style
@@ -162,28 +234,33 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             except (KeyboardInterrupt, EOFError):
                 break
 
-        console.print("\n[bold green]Exiting interactive mode. Goodbye![/bold green]")
+        console.print(Panel("[bold green]Exiting interactive mode. Goodbye![/bold green] 👋", 
+                          title="Session Ended", border_style="green"))
         return
 
     create_default_config_if_not_exists()
     
     if not client.is_running():
-        console.print("[red]✖[/red] Ollama service is not running or is unreachable.")
-        console.print("Please start Ollama and try again.")
+        console.print(Panel("[red]✖ Ollama service is not running or is unreachable.[/red]\n"
+                          "[yellow]Please start Ollama and try again.[/yellow]", 
+                          title="Connection Error", border_style="red"))
         sys.exit(1)
 
     if list_models:
         models = client.list_models()
         if models:
-            console.print("[bold green]Available Ollama models:[/bold green]")
+            models_table = Table(title="Available Ollama Models", border_style="green")
+            models_table.add_column("Model Name", style="cyan")
             for model in models:
-                console.print(f"- {model}")
+                models_table.add_row(model)
+            console.print(models_table)
         else:
-            console.print("[yellow]No Ollama models found.[/yellow]")
+            console.print(Panel("[yellow]No Ollama models found.[/yellow]", 
+                              title="Models", border_style="yellow"))
         return
 
     if download_model_name:
-        console.print(f"Starting download for '{download_model_name}'...")
+        console.print(f"[bold blue]📥 Starting download for '{download_model_name}'...[/bold blue]")
         client.download_model(download_model_name)
         return
         
@@ -191,22 +268,24 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
     if auto_setup or not available_models:
         if not available_models:
-            console.print("[yellow]No models found. Starting auto-setup.[/yellow]")
+            console.print(Panel("[yellow]No models found. Starting auto-setup.[/yellow]", 
+                              title="Setup", border_style="yellow"))
         else:
-            console.print("Starting auto-setup...")
+            console.print("[bold blue]Starting auto-setup...[/bold blue]")
         
         recommended_models = ["llama3.1:8b", "llama3", "mistral"]
         for model_to_try in recommended_models:
             if model_to_try not in available_models:
-                console.print(f"Downloading recommended model: {model_to_try}")
+                console.print(f"[bold blue]📥 Downloading recommended model:[/bold blue] [cyan]{model_to_try}[/cyan]")
                 if client.download_model(model_to_try):
                     available_models.append(model_to_try)
                     break 
             else:
-                console.print(f"Recommended model '{model_to_try}' is already available.")
+                console.print(f"[green]✔[/green] Recommended model '[cyan]{model_to_try}[/cyan]' is already available.")
                 break
         else:
-            console.print("[red]✖[/red] Auto-setup failed. Could not download a recommended model.")
+            console.print(Panel("[red]✖ Auto-setup failed. Could not download a recommended model.[/red]", 
+                              title="Setup Error", border_style="red"))
             sys.exit(1)
 
         if auto_setup:
@@ -219,9 +298,10 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
     if model_name:
         if model_name not in available_models:
-            console.print(f"[red]✖[/red] Model '{model_name}' not found. Available models:")
-            for model in available_models:
-                console.print(f"- {model}")
+            console.print(Panel(f"[red]✖ Model '{model_name}' not found.[/red]\n"
+                              f"[yellow]Available models:[/yellow]\n" +
+                              "\n".join([f"- {model}" for model in available_models]), 
+                              title="Model Error", border_style="red"))
             sys.exit(1)
         final_model = model_name
     else:
@@ -237,12 +317,14 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             if available_models:
                 final_model = available_models[0]
             else:
-                console.print("[red]✖[/red] No models available. Please download a model first, e.g.:")
-                console.print("`enhance --download-model llama3.1:8b` or run `enhance --auto-setup`")
+                console.print(Panel("[red]✖ No models available.[/red]\n"
+                                  "[yellow]Please download a model first, e.g.:[/yellow]\n"
+                                  "[dim]`enhance --download-model llama3.1:8b` or run `enhance --auto-setup`[/dim]", 
+                                  title="Model Error", border_style="red"))
                 sys.exit(1)
 
         if verbose:
-            console.print(f"No model specified. Using best available model: [cyan]{final_model}[/cyan]")
+            console.print(f"[bold blue]No model specified.[/bold blue] Using best available model: [cyan]{final_model}[/cyan]")
 
     final_style = style or config.get('default_style', 'detailed')
     final_temperature = temperature if temperature is not None else config.get('default_temperature', 0.7)
@@ -254,33 +336,64 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
     system_prompt = enhancer.enhance(prompt, final_style)
 
     if verbose:
-        console.print("\n[bold]System Prompt:[/bold]")
+        console.print("\n[bold blue]🔧 System Prompt:[/bold blue]")
         console.print(Panel(system_prompt, title="System Prompt", border_style="dim"))
 
     enhanced_prompt = ""
-    with console.status("[bold green]Loading model and enhancing prompt...[/bold green]") as status:
+    
+    # Enhanced loading experience with dynamic messages
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("[cyan]Loading model and enhancing prompt...[/cyan]", total=None)
+        
+        # Show dynamic loading messages
+        for i, message in enumerate(loading_messages):
+            progress.update(task, description=f"[cyan]{message}[/cyan]")
+            time.sleep(0.2)  # Brief pause for visual effect
+            
+            # Break early if we have a long list of messages
+            if i >= len(loading_messages) - 2:
+                break
+        
         try:
             stream_generator = client.generate_stream(final_model, system_prompt, final_temperature, final_max_tokens)
 
-            # Stop the status message before starting live display for streaming output
-            status.stop()
+            # Update message as we start generating
+            progress.update(task, description="[cyan]Generating enhanced prompt...[/cyan]")
 
-            # Only use Live for streaming output if a prompt is provided or in interactive mode
-            if is_interactive or prompt:
-                with Live(console=console, auto_refresh=False) as live:
-                    for chunk in stream_generator:
-                        enhanced_prompt += chunk
-                        live.update(Markdown(enhanced_prompt), refresh=True)
-            else: # If not interactive and no prompt, just collect the output
-                for chunk in stream_generator:
-                    enhanced_prompt += chunk
+            # Collect the output
+            for chunk in stream_generator:
+                enhanced_prompt += chunk
+                # Update message based on progress
+                if len(enhanced_prompt) > 100:
+                    progress.update(task, description="[cyan]Polishing the output...[/cyan]")
+                elif len(enhanced_prompt) > 20:
+                    progress.update(task, description="[cyan]Building response...[/cyan]")
+            
+            # Completion message
+            progress.update(task, description="[green]✔ Enhancement complete![/green]")
+            time.sleep(0.3)  # Brief pause for visual feedback
 
         except Exception as e:
-            console.print(f"\n[red]✖[/red] Error during enhancement: {e}")
+            progress.update(task, description=f"[red]✖ Error during enhancement: {e}[/red]")
+            time.sleep(1)
             sys.exit(1)
 
     if enhanced_prompt:
         save_enhancement(prompt, enhanced_prompt, final_style, final_model)
+        
+        # Enhanced success message
+        success_panel = Panel(
+            f"[green]✔[/green] Your prompt has been successfully enhanced!\n"
+            f"[blue]Style:[/blue] {final_style} | [blue]Model:[/blue] {final_model}",
+            title="Success",
+            border_style="green"
+        )
+        console.print(success_panel)
+        
         if diff:
             console.print("\n[bold yellow]↔️  Diff View ↔️[/bold yellow]")
             diff_result = difflib.unified_diff(
@@ -299,14 +412,23 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                 else:
                     console.print(line, end="")
 
+        # Enhanced prompt display
+        console.print("\n[bold magenta]✨ Enhanced Prompt ✨[/bold magenta]")
+        console.print(Panel(Markdown(enhanced_prompt), 
+                          title="Your Enhanced Prompt", 
+                          border_style="green",
+                          expand=False))
+
         if output_file:
             output_file.write(enhanced_prompt)
-            console.print(f"\n[green]✔[/green] Saved to {output_file.name}")
+            console.print(f"\n[green]✔[/green] Saved to [cyan]{output_file.name}[/cyan]")
 
         if auto_copy_enabled:
             copy_to_clipboard(enhanced_prompt)
+            console.print("[green]✔ Enhanced prompt copied to clipboard.[/green]")
     else:
-        console.print("\n[red]✖[/red] Failed to generate enhanced prompt.")
+        console.print(Panel("[red]✖ Failed to generate enhanced prompt.[/red]", 
+                          title="Error", border_style="red"))
         sys.exit(1)
 
 if __name__ == '__main__':
