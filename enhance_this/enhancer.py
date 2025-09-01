@@ -7,13 +7,16 @@ console = Console()
 
 def load_templates(custom_template_paths: Optional[Dict[str, str]] = None) -> Dict[str, str]:
     templates = {}
-    package = 'enhance_this.templates'
+    package = 'enhance_this'
     
     # Load built-in templates
     built_in_styles = ["detailed", "concise", "creative", "technical", "json", "bullets", "summary", "formal", "casual"]
     for style in built_in_styles:
         try:
-            content = importlib.resources.read_text(package, f"{style}.txt")
+            # Use importlib.resources.files to get a path-like object
+            # and then read the text content. This is the recommended approach
+            # for compatibility with both files and directories within packages.
+            content = importlib.resources.files(package).joinpath(f'templates/{style}.txt').read_text(encoding='utf-8')
             templates[style] = content
         except FileNotFoundError:
             # This should not happen with built-in templates
