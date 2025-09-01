@@ -131,7 +131,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
         if selected_entry:
             # Enhanced history display
-            from rich.table import Table
             history_table = Table(title="History Details", border_style="green")
             history_table.add_column("Property", style="cyan", no_wrap=True)
             history_table.add_column("Value", style="magenta")
@@ -238,11 +237,8 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                 # Use Live for streaming output with a spinner
                 with Live(console=console, auto_refresh=True, refresh_per_second=4) as live_display:
                     # Create initial display with spinner
-                    from rich.spinner import Spinner
-                    from rich.table import Table
                     
                     # Create initial display with spinner and panel
-                    from rich.panel import Panel
                     
                     initial_panel = Panel(
                         "[cyan]Enhancing your prompt with AI model...[/cyan]\n"
@@ -275,8 +271,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                                     content_preview = content_preview[:2000] + "\n... (content truncated for display)"
                                 
                                 # Create a better formatted display for streaming content
-                                from rich.panel import Panel
-                                from rich.text import Text
                                                     
                                 # Create a panel with the streaming content
                                 content_panel = Panel(
@@ -288,7 +282,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                                 )
                                                     
                                 # Create table with spinner and content panel
-                                from rich.spinner import Spinner
                                 display_table = Table.grid(padding=1)
                                 display_table.add_column(width=5)  # For spinner
                                 display_table.add_column()
@@ -298,7 +291,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                                 )
                                 live_display.update(display_table)
                     except requests.exceptions.ConnectionError:
-                        from rich.panel import Panel
                         console.print(Panel(
                             "[red]✖ Connection error with Ollama service.[/red]\n"
                             "[yellow]Please check if Ollama is running and try again.[/yellow]",
@@ -307,7 +299,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                         ))
                         continue
                     except requests.exceptions.Timeout:
-                        from rich.panel import Panel
                         console.print(Panel(
                             "[red]✖ Request timed out.[/red]\n"
                             "[yellow]The model may still be loading. Please try again.[/yellow]",
@@ -316,7 +307,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                         ))
                         continue
                     except KeyboardInterrupt:
-                        from rich.panel import Panel
                         console.print(Panel(
                             "[yellow]⚠ Operation cancelled by user.[/yellow]\n\n"
                             "[dim]You can resume your session later.[/dim]",
@@ -325,7 +315,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                         ))
                         break
                     except Exception as e:
-                        from rich.panel import Panel
                         console.print(Panel(
                             f"[red]✖ Error during enhancement:[/red]\n{str(e)}\n\n"
                             f"[yellow]Please try again or use a different model.[/yellow]",
@@ -382,7 +371,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                     try:
                         copy_to_clipboard(enhanced_prompt)
                     except Exception as e:
-                        from rich.panel import Panel
                         console.print(Panel(
                             f"[red]✖ Error copying to clipboard:[/red]\n{str(e)}\n\n"
                             f"[yellow]You can manually copy the prompt above.[/yellow]",
@@ -398,7 +386,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                 console.print("\n[yellow]Operation cancelled by user.[/yellow]")
                 break
             except Exception as e:
-                from rich.panel import Panel
                 console.print(Panel(
                     f"[red]✖ Unexpected error in interactive mode:[/red]\n{str(e)}\n\n"
                     f"[yellow]Continuing session...[/yellow]",
@@ -427,7 +414,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             ))
             sys.exit(1)
     except Exception as e:
-        from rich.panel import Panel
         console.print(Panel(
             f"[red]✖ Unexpected error while checking Ollama connection:[/red]\n{str(e)}\n\n"
             "[yellow]Please check your network connection and Ollama installation.[/yellow]",
@@ -455,7 +441,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                     border_style="yellow"
                 ))
         except Exception as e:
-            from rich.panel import Panel
             console.print(Panel(
                 f"[red]✖ Error listing models:[/red]\n{str(e)}",
                 title="Model Error",
@@ -478,7 +463,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                     border_style="red"
                 ))
         except Exception as e:
-            from rich.panel import Panel
             console.print(Panel(
                 f"[red]✖ Unexpected error downloading model:[/red]\n{str(e)}",
                 title="Download Error",
@@ -490,7 +474,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
     try:
         available_models = client.list_models()
     except Exception as e:
-        from rich.panel import Panel
         console.print(Panel(
             f"[red]✖ Error retrieving model list:[/red]\n{str(e)}\n\n"
             "[yellow]Continuing with auto-setup...[/yellow]",
@@ -620,11 +603,8 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         # Use Live for streaming output with a spinner
         with Live(console=console, auto_refresh=True, refresh_per_second=4) as live_display:
             # Create initial display with spinner
-            from rich.spinner import Spinner
-            from rich.table import Table
             
             # Create initial display with spinner and panel
-            from rich.panel import Panel
             
             initial_panel = Panel(
                 "[cyan]Loading model and generating response...[/cyan]\n"
@@ -657,8 +637,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                         content_preview = content_preview[:2000] + "\n... (content truncated for display)"
                     
                     # Create a better formatted display for streaming content
-                    from rich.panel import Panel
-                    from rich.text import Text
                     
                     # Create a panel with the streaming content
                     content_panel = Panel(
@@ -670,7 +648,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                     )
                     
                     # Create table with spinner and content panel
-                    from rich.spinner import Spinner
                     display_table = Table.grid(padding=1)
                     display_table.add_column(width=5)  # For spinner
                     display_table.add_column()
@@ -685,7 +662,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                 console.print("[yellow]⚠[/yellow] Warning: No response received from model.")
             
             # Show completion with enhanced visual feedback
-            from rich.panel import Panel
             
             completion_panel = Panel(
                 "[green]✨ Enhancement complete! AI response generated successfully.[/green]",
@@ -703,7 +679,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             time.sleep(0.8)  # Longer pause for visual feedback
             
     except requests.exceptions.ConnectionError:
-        from rich.panel import Panel
         console.print(Panel(
             "[red]✖ Connection error with Ollama service.[/red]\n\n"
             "[bold]Troubleshooting steps:[/bold]\n"
@@ -716,13 +691,12 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         ))
         sys.exit(1)
     except requests.exceptions.Timeout:
-        from rich.panel import Panel
         console.print(Panel(
             "[red]✖ Request timed out while communicating with Ollama.[/red]\n\n"
             "[yellow]This might happen if:[/yellow]\n"
             "• The model is still loading\n"
             "• The prompt is very complex\n"
-            "• Your system is under heavy load\n\n"
+• Your system is under heavy load\n\n"
             "[bold]Try:[/bold]\n"
             "• Increasing timeout in config (~/.enhance-this/config.yaml)\n"
             "• Using a smaller model\n"
@@ -732,7 +706,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         ))
         sys.exit(1)
     except KeyboardInterrupt:
-        from rich.panel import Panel
         console.print(Panel(
             "[yellow]⚠ Operation cancelled by user.[/yellow]\n\n"
             "[dim]You can resume your work later.[/dim]",
@@ -741,7 +714,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         ))
         sys.exit(0)
     except Exception as e:
-        from rich.panel import Panel
         console.print(Panel(
             f"[red]✖ Unexpected error during enhancement:[/red]\n{str(e)}\n\n"
             "[yellow]Please check the error and try again.[/yellow]",
@@ -807,7 +779,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                 output_file.write(enhanced_prompt)
                 console.print(f"\n[green]✔[/green] Saved to [cyan]{output_file.name}[/cyan]")
             except Exception as e:
-                from rich.panel import Panel
                 console.print(Panel(
                     f"[red]✖ Error saving to file:[/red]\n{str(e)}\n\n"
                     f"[yellow]Please check file permissions and path.[/yellow]",
@@ -819,7 +790,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             try:
                 copy_to_clipboard(enhanced_prompt)
             except Exception as e:
-                from rich.panel import Panel
                 console.print(Panel(
                     f"[red]✖ Unexpected error during clipboard copy:[/red]\n{str(e)}\n\n"
                     f"[yellow]You can manually copy the prompt above.[/yellow]",
@@ -827,7 +797,6 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                     border_style="red"
                 ))
     else:
-        from rich.panel import Panel
         console.print(Panel(
             "[red]✖ Failed to generate enhanced prompt.[/red]\n\n"
             "[yellow]This might happen if:[/yellow]\n"
@@ -842,6 +811,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             border_style="red"
         ))
         sys.exit(1)
+
 
 def run_config_wizard(console, config_path):
     """Run the interactive configuration wizard for first-time setup."""
