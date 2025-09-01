@@ -4,6 +4,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 from typing import List, Dict, Any, Iterator
 from requests.adapters import HTTPAdapter, Retry
+import platform
 
 console = Console()
 
@@ -20,6 +21,9 @@ class OllamaClient:
         try:
             response = self.session.get(self.host, timeout=self.timeout)
             return response.status_code == 200
+        except requests.exceptions.ConnectionError:
+            # More specific handling for connection errors
+            return False
         except requests.RequestException:
             return False
 
@@ -29,7 +33,14 @@ class OllamaClient:
             response.raise_for_status()
             models = response.json().get("models", [])
             return [model["name"] for model in models]
-        except requests.RequestException:
+        except requests.exceptions.ConnectionError:
+            console.print("[yellow]⚠[/yellow] Could not connect to Ollama service to list models.")
+            return []
+        except requests.exceptions.Timeout:
+            console.print("[yellow]⚠[/yellow] Timeout while trying to list models from Ollama.")
+            return []
+        except requests.RequestException as e:
+            console.print(f"[yellow]⚠[/yellow] Error listing models from Ollama: {e}")
             return []
 
     def download_model(self, model_name: str) -> bool:
@@ -64,11 +75,19 @@ class OllamaClient:
                             break
                 console.print(f"[green]✔[/green] Model '{model_name}' downloaded successfully.")
                 return True
+            except requests.exceptions.ConnectionError:
+                console.print(f"[red]✖[/red] Connection error while downloading model '{model_name}'.\n"
+                             f"[yellow]Please check if Ollama is running.[/yellow]")
+                return False
+            except requests.exceptions.Timeout:
+                console.print(f"[red]✖[/red] Timeout while downloading model '{model_name}'.\n"
+                             f"[yellow]The download may still be in progress in the background.[/yellow]")
+                return False
             except requests.RequestException as e:
                 console.print(f"[red]✖[/red] Failed to download model '{model_name}': {e}")
                 return False
             except json.JSONDecodeError:
-                console.print(f"[red]✖[/red] Failed to parse response from Ollama while downloading.")
+                console.print(f"[red]✖[/red] Failed to parse response from Ollama while downloading '{model_name}'.")
                 return False
 
     def preload_model(self, model_name: str):
@@ -87,6 +106,12 @@ class OllamaClient:
             )
             response.raise_for_status()
             console.print(f"[green]✔[/green] Model '{model_name}' preloaded successfully.")
+        except requests.exceptions.ConnectionError:
+            console.print(f"[red]✖[/red] Connection error while preloading model '{model_name}'.\n"
+                         f"[yellow]Please check if Ollama is running.[/yellow]")
+        except requests.exceptions.Timeout:
+            console.print(f"[red]✖[/red] Timeout while preloading model '{model_name}'.\n"
+                         f"[yellow]The model may still be loading.[/yellow]")
         except requests.RequestException as e:
             console.print(f"[red]✖[/red] Failed to preload model '{model_name}': {e}")
 
@@ -113,7 +138,14 @@ class OllamaClient:
                         yield data.get("response", "")
                         if data.get("done"):
                             break
+        except requests.exceptions.ConnectionError:
+            console.print(f"[red]✖[/red] Connection error with Ollama service.\n"
+                         f"[yellow]Please check if Ollama is running.[/yellow]")
+            raise
         except requests.exceptions.Timeout:
-            console.print(f"[red]✖[/red] Ollama request timed out after {self.timeout} seconds.")
+            console.print(f"[red]✖[/red] Ollama request timed out after {self.timeout} seconds.\n"
+                         f"[yellow]Try increasing the timeout in your config or using a smaller model.[/yellow]")
+            raise
         except requests.RequestException as e:
             console.print(f"[red]✖[/red] Error communicating with Ollama: {e}")
+            raise
