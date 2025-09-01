@@ -43,6 +43,10 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
     """
     Enhances a simple prompt using Ollama AI models, displays the enhanced version,
     and automatically copies it to the clipboard.
+    
+    Note: Response speed and quality depend on your system specifications and the
+    selected AI model. enhance-this provides the interface but cannot control
+    underlying performance factors.
     """
     console = Console()
     config = load_config(config_path)
@@ -259,7 +263,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                                 # Create a panel with the streaming content
                                 content_panel = Panel(
                                     Text(content_preview, style="magenta"),
-                                    title="[cyan]Streaming Response[/cyan]",
+                                    title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
                                     border_style="green",
                                     expand=True,  # Allow panel to expand with content
                                     padding=(1, 2)
@@ -641,7 +645,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                     # Create a panel with the streaming content
                     content_panel = Panel(
                         Text(content_preview, style="yellow"),
-                        title="[cyan]Streaming Response[/cyan]",
+                        title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
                         border_style="green",
                         expand=True,  # Allow panel to expand with content
                         padding=(1, 2)
@@ -738,7 +742,8 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         success_panel = Panel(
             f"[green]✔[/green] Your prompt has been successfully enhanced!\n"
             f"[blue]Style:[/blue] {final_style} | [blue]Model:[/blue] {final_model}\n"
-            f"[dim]Tokens generated: {len(enhanced_prompt)}[/dim]",
+            f"[dim]Tokens generated: {len(enhanced_prompt)}[/dim]\n"
+            f"[dim]Note: Response Speed/Quality depend on System's/AI-model's performance.[/dim]",
             title="Success",
             border_style="green"
         )
