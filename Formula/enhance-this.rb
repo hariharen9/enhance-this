@@ -42,7 +42,9 @@ class EnhanceThis < Formula
   end
 
   def install
-    virtualenv_install_with_resources
+    venv = virtualenv_create(libexec, "python3.11")
+    venv.pip_install resources
+    venv.pip_install_and_link buildpath
   end
 
   test do

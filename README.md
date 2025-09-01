@@ -30,6 +30,8 @@ Whether you're a developer, writer, student, or AI enthusiast, `enhance-this` ma
 *   **Diff View**: Instantly see what's been improved with the `--diff` flag.
 *   **Seamless Workflow**: Automatically copies the final prompt, ready to paste anywhere.
 *   **History Tracking**: Revisit your best prompts with `enhance --history`.
+*   **Configuration Wizard**: First-time setup made easy with an interactive configuration wizard.
+*   **Visual Template Editor**: Create and edit custom prompt templates with your preferred text editor.
 
 ---
 
@@ -87,17 +89,56 @@ brew install hariharen9/tap/enhance-this
 
 ---
 
+## 🛠 Configuration Wizard
+
+Setting up `enhance-this` has never been easier! Run the interactive configuration wizard to customize your experience:
+
+```bash
+enhance --config-wizard
+```
+
+The wizard will guide you through:
+- Setting your Ollama host address
+- Choosing your preferred enhancement style
+- Configuring generation temperature
+- Setting maximum response length
+- Enabling/disabling automatic clipboard copying
+- Selecting your preferred AI models
+
+---
+
+## 🎨 Visual Template Editor
+
+Create custom prompt templates with our built-in visual editor that integrates with your preferred text editor:
+
+```bash
+enhance --template-editor
+```
+
+Features:
+- Edit existing templates or create new ones
+- Integration with your system's default text editor (nano, vim, emacs, etc.)
+- Built-in templates as starting points
+- Custom template management
+- Real-time preview of template structure
+
+The template editor will automatically use your system's default editor (defined by the `$EDITOR` environment variable) or fall back to `nano` if none is set.
+
+---
+
 ## 💡 How to Use
 
-| Command                   | Description                                      |
-| ------------------------- | ------------------------------------------------ |
-| `enhance "..."`           | Enhance a prompt.                                |
-| `enhance --interactive`   | Start an interactive session.                    |
-| `enhance --diff`          | Show a diff of the changes.                      |
-| `enhance -s <style>`      | Use a specific enhancement style.                |
-| `enhance --history`       | View your enhancement history.                   |
-| `enhance --auto-setup`    | Download and set up a recommended model.         |
-| `enhance --preload-model` | Load a model into memory for faster responses.   |
+| Command                        | Description                                           |
+| ------------------------------ | ----------------------------------------------------- |
+| `enhance "..."`                | Enhance a prompt.                                     |
+| `enhance --interactive`        | Start an interactive session.                         |
+| `enhance --diff`               | Show a diff of the changes.                           |
+| `enhance -s <style>`           | Use a specific enhancement style.                     |
+| `enhance --history`            | View your enhancement history.                        |
+| `enhance --auto-setup`         | Download and set up a recommended model.              |
+| `enhance --preload-model`      | Load a model into memory for faster responses.        |
+| `enhance --config-wizard`      | Run the interactive configuration wizard.             |
+| `enhance --template-editor`    | Launch the visual template editor.                    |
 
 ---
 

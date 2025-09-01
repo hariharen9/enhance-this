@@ -37,12 +37,20 @@ from .history import save_enhancement, load_history
 @click.option('--history', 'show_history', is_flag=True, help='Show enhancement history.')
 @click.option('--interactive', 'is_interactive', is_flag=True, help='Start an interactive enhancement session.')
 @click.option('--preload-model', is_flag=True, help='Preload a model to keep it in memory for faster responses.')
+@click.option('--config-wizard', is_flag=True, help='Run the configuration wizard for first-time setup.')
+@click.option('--template-editor', is_flag=True, help='Launch the visual template editor.')
 @click.version_option()
 @click.help_option('-h', '--help')
-def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, no_copy, output_file, style, diff, list_models, download_model_name, auto_setup, show_history, is_interactive, preload_model):
+def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, no_copy, output_file, style, diff, list_models, download_model_name, auto_setup, show_history, is_interactive, preload_model, config_wizard, template_editor):
     """
     Enhances a simple prompt using Ollama AI models, displays the enhanced version,
     and automatically copies it to the clipboard.
+    
+    Configuration Wizard:
+      Run 'enhance --config-wizard' to set up enhance-this with an interactive setup process.
+      
+    Template Editor:
+      Run 'enhance --template-editor' to create and edit custom prompt templates visually.
     
     Note: Response speed and quality depend on your system specifications and the
     selected AI model. enhance-this provides the interface but cannot control
@@ -51,6 +59,16 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
     console = Console()
     config = load_config(config_path)
     client = OllamaClient(host=config['ollama_host'], timeout=config['timeout'])
+
+    # Handle configuration wizard
+    if config_wizard:
+        run_config_wizard(console, config_path)
+        return
+
+    # Handle template editor
+    if template_editor:
+        run_template_editor(console, config)
+        return
 
     # Custom loading messages for better UX
     loading_messages = [
@@ -824,6 +842,267 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             border_style="red"
         ))
         sys.exit(1)
+
+def run_config_wizard(console, config_path):
+    """Run the interactive configuration wizard for first-time setup."""
+    from .config import get_config_path, DEFAULT_CONFIG
+    import yaml
+    
+    console.print(Panel("[bold blue]🔧 Configuration Wizard[/bold blue]\n"
+                       "Let's set up enhance-this for optimal performance!\n"
+                       "[dim]Press Ctrl+C anytime to exit.[/dim]",
+                       title="Welcome", border_style="blue"))
+    
+    try:
+        # Get current config path
+        config_file_path = get_config_path(config_path)
+        
+        # Load existing config or use defaults
+        try:
+            if config_file_path.exists():
+                with open(config_file_path, 'r') as f:
+                    current_config = yaml.safe_load(f) or {}
+            else:
+                current_config = {}
+        except Exception:
+            current_config = {}
+        
+        # Merge with defaults
+        config = {**DEFAULT_CONFIG, **current_config}
+        
+        # Step 1: Ollama Host
+        console.print("\n[bold]🌐 Ollama Configuration[/bold]")
+        host = questionary.text(
+            "What's your Ollama host address?",
+            default=config.get('ollama_host', DEFAULT_CONFIG['ollama_host'])
+        ).ask()
+        if host is None:
+            return
+        config['ollama_host'] = host
+        
+        # Step 2: Default Style
+        console.print("\n[bold]🎨 Default Enhancement Style[/bold]")
+        style = questionary.select(
+            "Choose your preferred enhancement style:",
+            choices=[
+                'detailed', 'concise', 'creative', 'technical', 
+                'json', 'bullets', 'summary', 'formal', 'casual'
+            ],
+            default=config.get('default_style', DEFAULT_CONFIG['default_style'])
+        ).ask()
+        if style is None:
+            return
+        config['default_style'] = style
+        
+        # Step 3: Temperature
+        console.print("\n[bold]🌡️  Generation Temperature[/bold]")
+        temp = questionary.text(
+            "Set default temperature (0.0-2.0, lower = more focused, higher = more creative):",
+            default=str(config.get('default_temperature', DEFAULT_CONFIG['default_temperature'])),
+            validate=lambda x: x.replace('.', '').isdigit() and 0.0 <= float(x) <= 2.0
+        ).ask()
+        if temp is None:
+            return
+        config['default_temperature'] = float(temp)
+        
+        # Step 4: Max Tokens
+        console.print("\n[bold]📏 Response Length[/bold]")
+        tokens = questionary.text(
+            "Set maximum tokens for responses:",
+            default=str(config.get('max_tokens', DEFAULT_CONFIG['max_tokens'])),
+            validate=lambda x: x.isdigit() and int(x) > 0
+        ).ask()
+        if tokens is None:
+            return
+        config['max_tokens'] = int(tokens)
+        
+        # Step 5: Auto Copy
+        console.print("\n[bold]📋 Clipboard Settings[/bold]")
+        auto_copy = questionary.confirm(
+            "Automatically copy enhanced prompts to clipboard?",
+            default=config.get('auto_copy', DEFAULT_CONFIG['auto_copy'])
+        ).ask()
+        if auto_copy is None:
+            return
+        config['auto_copy'] = auto_copy
+        
+        # Step 6: Preferred Models
+        console.print("\n[bold]🤖 Preferred Models[/bold]")
+        console.print("[dim]Enter your preferred models in order of preference (comma-separated)[/dim]")
+        models_input = questionary.text(
+            "Preferred models:",
+            default=",".join(config.get('preferred_models', DEFAULT_CONFIG['preferred_models']))
+        ).ask()
+        if models_input is None:
+            return
+        config['preferred_models'] = [m.strip() for m in models_input.split(',') if m.strip()]
+        
+        # Save configuration
+        config_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_file_path, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+        
+        console.print(Panel("[green]✅ Configuration saved successfully![/green]\n"
+                           f"Location: {config_file_path}\n\n"
+                           "[bold]Next steps:[/bold]\n"
+                           "• Run [cyan]enhance --auto-setup[/cyan] to download a recommended model\n"
+                           "• Or manually install a model: [cyan]ollama pull llama3.1:8b[/cyan]",
+                           title="Setup Complete", border_style="green"))
+        
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Configuration wizard cancelled.[/yellow]")
+    except Exception as e:
+        console.print(Panel(f"[red]❌ Error saving configuration:[/red]\n{str(e)}",
+                           title="Error", border_style="red"))
+
+def run_template_editor(console, config):
+    """Launch the visual template editor."""
+    from .config import get_config_dir
+    from .enhancer import PromptEnhancer
+    import os
+    import tempfile
+    
+    console.print(Panel("[bold magenta]🎨 Visual Template Editor[/bold magenta]\n"
+                       "Create and edit custom prompt templates\n"
+                       "[dim]Press Ctrl+C anytime to exit.[/dim]",
+                       title="Template Editor", border_style="magenta"))
+    
+    try:
+        # Get templates directory
+        templates_dir = get_config_dir() / "templates"
+        templates_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Load existing templates
+        enhancer = PromptEnhancer(config.get('enhancement_templates'))
+        
+        while True:
+            # Show current templates
+            console.print("\n[bold]📝 Current Templates:[/bold]")
+            all_templates = list(enhancer.templates.keys())
+            template_choices = [(f"{t} {'(custom)' if t not in ['detailed', 'concise', 'creative', 'technical', 'json', 'bullets', 'summary', 'formal', 'casual'] else '(built-in)'}", t) for t in all_templates]
+            template_choices.append(("➕ Create new template", "create_new"))
+            template_choices.append(("🚪 Exit editor", "exit"))
+            
+            selected_action = questionary.select(
+                "Select a template to edit or action:",
+                choices=[choice[0] for choice in template_choices]
+            ).ask()
+            
+            if selected_action is None:
+                break
+                
+            # Find the actual template name or action
+            selected_value = None
+            for choice in template_choices:
+                if choice[0] == selected_action:
+                    selected_value = choice[1]
+                    break
+            
+            # Handle exit action
+            if selected_value == "exit":
+                break
+                
+            # Handle create new template
+            if selected_value == "create_new":
+                # Create new template
+                template_name = questionary.text("Enter template name:").ask()
+                if template_name is None:
+                    continue
+                    
+                if template_name in enhancer.templates:
+                    console.print("[yellow]Template already exists. Editing existing template.[/yellow]")
+                
+                # Use detailed template as default
+                default_content = enhancer.templates.get('detailed', 
+                    "You are an expert prompt engineer.\n\n"
+                    "Transform the user's basic prompt into a comprehensive, actionable prompt.\n\n"
+                    "Original prompt: \"{user_prompt}\"\n\n"
+                    "Transform this into a detailed prompt that will generate high-quality responses.")
+                
+                # Create a temporary file for editing
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as tmp_file:
+                    tmp_file.write(default_content)
+                    tmp_file_path = tmp_file.name
+                
+                try:
+                    # Open the default editor
+                    editor = os.environ.get('EDITOR', 'nano')  # Use nano as fallback
+                    os.system(f'{editor} {tmp_file_path}')
+                    
+                    # Read the edited content
+                    with open(tmp_file_path, 'r') as f:
+                        edited_content = f.read()
+                    
+                    if edited_content != default_content:
+                        template_path = templates_dir / f"{template_name}.txt"
+                        with open(template_path, 'w') as f:
+                            f.write(edited_content)
+                        console.print(f"[green]✅ Template '{template_name}' saved![/green]")
+                    else:
+                        console.print("[yellow]No changes made.[/yellow]")
+                finally:
+                    # Clean up temporary file
+                    os.unlink(tmp_file_path)
+                    
+                    # Reload templates
+                    enhancer = PromptEnhancer(config.get('enhancement_templates'))
+            else:
+                # Handle template editing
+                template_name = selected_value
+                if template_name:
+                    # Show template content
+                    content = enhancer.templates.get(template_name, "")
+                    console.print(f"\n[bold]Template: {template_name}[/bold]")
+                    console.print(Panel(content, title="Current Content", border_style="blue"))
+                    
+                    # Ask if user wants to edit
+                    if questionary.confirm("Edit this template?").ask():
+                        # Create a temporary file for editing
+                        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as tmp_file:
+                            tmp_file.write(content)
+                            tmp_file_path = tmp_file.name
+                        
+                        try:
+                            # Open the default editor
+                            editor = os.environ.get('EDITOR', 'nano')  # Use nano as fallback
+                            os.system(f'{editor} {tmp_file_path}')
+                            
+                            # Read the edited content
+                            with open(tmp_file_path, 'r') as f:
+                                edited_content = f.read()
+                            
+                            if edited_content != content:
+                                if template_name in ['detailed', 'concise', 'creative', 'technical', 'json', 'bullets', 'summary', 'formal', 'casual']:
+                                    # Built-in template - save as custom
+                                    new_name = questionary.text(
+                                        "Built-in templates cannot be modified directly. Save as new template name:",
+                                        default=f"custom_{template_name}"
+                                    ).ask()
+                                    if new_name:
+                                        template_path = templates_dir / f"{new_name}.txt"
+                                        with open(template_path, 'w') as f:
+                                            f.write(edited_content)
+                                        console.print(f"[green]✅ Template '{new_name}' saved![/green]")
+                                else:
+                                    # Custom template - save directly
+                                    template_path = templates_dir / f"{template_name}.txt"
+                                    with open(template_path, 'w') as f:
+                                        f.write(edited_content)
+                                    console.print(f"[green]✅ Template '{template_name}' updated![/green]")
+                            else:
+                                console.print("[yellow]No changes made.[/yellow]")
+                        finally:
+                            # Clean up temporary file
+                            os.unlink(tmp_file_path)
+                        
+                        # Reload templates
+                        enhancer = PromptEnhancer(config.get('enhancement_templates'))
+                        
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Template editor exited.[/yellow]")
+    except Exception as e:
+        console.print(Panel(f"[red]❌ Error in template editor:[/red]\n{str(e)}",
+                           title="Error", border_style="red"))
 
 if __name__ == '__main__':
     enhance()
