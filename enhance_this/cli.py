@@ -207,7 +207,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         if model_name and model_name not in available_models:
             console.print(Panel(
                 f"[red]✖ Model '{model_name}' not found.[/red]\n\n"
-                f"[bold]Available models:[/bold]\n" +
+                f"[bold]Available models:[/bold]\n" + 
                 "\n".join([f"• {model}" for model in available_models]),
                 title="Model Error",
                 border_style="red"
@@ -257,39 +257,76 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                     
                     # Actual enhancement with streaming
                     chunk_count = 0
+                    is_thinking = False
+                    think_buffer = ""
+
+                    # Custom thinking messages
+                    thinking_messages = [
+                        "The AI is pondering...",
+                        "Analyzing the request...",
+                        "Consulting the digital muses...",
+                        "Crafting a response...",
+                        "The gears of thought are turning...",
+                        "Unraveling the query...",
+                        "Formulating a brilliant reply...",
+                    ]
+                    random.shuffle(thinking_messages)
+                    message_iterator = iter(thinking_messages)
+
                     try:
                         for i, chunk in enumerate(client.generate_stream(final_model, system_prompt, 0.7, 2000)):
-                            enhanced_prompt += chunk
-                            chunk_count += 1
-                            
-                            # Update display with current content
-                            if enhanced_prompt:
-                                # Show streaming content with spinner
-                                content_preview = enhanced_prompt
-                                # Limit preview length but show more content
-                                if len(content_preview) > 2000:
-                                    content_preview = content_preview[:2000] + "\n... (content truncated for display)"
+                            if is_thinking:
+                                think_buffer += chunk
+                                if "</think>" in think_buffer:
+                                    is_thinking = False
+                                    think_buffer = "" # Clear buffer after thinking is done
+                            elif "<think>" in chunk:
+                                is_thinking = True
+                                # Start of thinking, display a message
+                                try:
+                                    message = next(message_iterator)
+                                except StopIteration:
+                                    random.shuffle(thinking_messages)
+                                    message_iterator = iter(thinking_messages)
+                                    message = next(message_iterator)
+
+                                live_display.update(Panel(f"[bold cyan]{message}[/bold cyan]",
+                                                          title="[bold blue]🧠 The selected model is a Thinking one... Let it do the magic[/bold blue]",
+                                                          border_style="cyan",
+                                                          expand=True,
+                                                          padding=(1, 2)))
+                            else:
+                                enhanced_prompt += chunk
+                                chunk_count += 1
                                 
-                                # Create a better formatted display for streaming content
-                                                    
-                                # Create a panel with the streaming content
-                                content_panel = Panel(
-                                    Text(content_preview, style="magenta"),
-                                    title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
-                                    border_style="green",
-                                    expand=True,  # Allow panel to expand with content
-                                    padding=(1, 2)
-                                )
-                                                    
-                                # Create table with spinner and content panel
-                                display_table = Table.grid(padding=1)
-                                display_table.add_column(width=5)  # For spinner
-                                display_table.add_column()
-                                display_table.add_row(
-                                    Spinner("dots9", style="green"),
-                                    content_panel
-                                )
-                                live_display.update(display_table)
+                                # Update display with current content
+                                if enhanced_prompt:
+                                    # Show streaming content with spinner
+                                    content_preview = enhanced_prompt
+                                    # Limit preview length but show more content
+                                    if len(content_preview) > 2000:
+                                        content_preview = content_preview[:2000] + "\n... (content truncated for display)"
+                                    
+                                    # Create a better formatted display for streaming content
+                                                        
+                                    # Create a panel with the streaming content
+                                    content_panel = Panel(
+                                        Text(content_preview, style="magenta"),
+                                        title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
+                                        border_style="green",
+                                        expand=True,  # Allow panel to expand with content
+                                        padding=(1, 2)
+                                    )
+                                                        
+                                    # Create table with spinner and content panel
+                                    display_table = Table.grid(padding=1)
+                                    display_table.add_column(width=5)  # For spinner
+                                    display_table.add_column()
+                                    display_table.add_row(
+                                        Spinner("dots9", style="green"),
+                                        content_panel
+                                    )
+                                    live_display.update(display_table)
                     except requests.exceptions.ConnectionError:
                         console.print(Panel(
                             "[red]✖ Connection error with Ollama service.[/red]\n"
@@ -535,8 +572,8 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         if model_name not in available_models:
             console.print(Panel(
                 f"[red]✖ Model '{model_name}' not found.[/red]\n\n"
-                f"[bold]Available models:[/bold]\n" +
-                ("\n".join([f"• {model}" for model in available_models]) if available_models else "[yellow]No models available[/yellow]") +
+                f"[bold]Available models:[/bold]\n" + 
+                ("\n".join([f"• {model}" for model in available_models]) if available_models else "[yellow]No models available[/yellow]") + 
                 "\n\n[bold]To install models:[/bold]\n"
                 "• Run [cyan]enhance --auto-setup[/cyan]\n"
                 "• Or manually: [cyan]ollama pull <model-name>[/cyan]",
@@ -623,39 +660,95 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             
             # Collect the output with streaming
             chunk_count = 0
+            is_thinking = False
+            think_buffer = ""
+            
+            # Custom thinking messages
+            thinking_messages = [
+                "The AI is pondering...",
+                "Analyzing the request...",
+                "Consulting the digital muses...",
+                "Crafting a response...",
+                "The gears of thought are turning...",
+                "Unraveling the query...",
+                "Formulating a brilliant reply...",
+                "Just a moment, weaving some magic...",
+                "The model is in deep thought...",
+                "Let's see what the AI comes up with...",
+                "Brewing a creative response...",
+            ]
+            random.shuffle(thinking_messages)
+            message_iterator = iter(thinking_messages)
+            last_message_update_time = 0
+
             for i, chunk in enumerate(stream_generator):
-                enhanced_prompt += chunk
-                chunk_count += 1
-                
-                # Update display with current content
-                if enhanced_prompt:
-                    # Show streaming content with spinner
-                    content_preview = enhanced_prompt
-                    # Show full content without artificial limits for reasonable lengths
-                    # Only add ellipsis for very long content to prevent display issues
-                    if len(content_preview) > 2000:
-                        content_preview = content_preview[:2000] + "\n... (content truncated for display)"
+                if is_thinking:
+                    think_buffer += chunk
+                    if time.time() - last_message_update_time > 2:
+                        try:
+                            message = next(message_iterator)
+                        except StopIteration:
+                            random.shuffle(thinking_messages)
+                            message_iterator = iter(thinking_messages)
+                            message = next(message_iterator)
+                        live_display.update(Panel(f"[bold cyan]{message}[/bold cyan]",
+                                                  title="[bold blue]🧠 The selected model is a Thinking one... Let it do the magic[/bold blue]",
+                                                  border_style="cyan",
+                                                  expand=True,
+                                                  padding=(1, 2)))
+                        last_message_update_time = time.time()
+                    if "</think>" in think_buffer:
+                        is_thinking = False
+                        think_buffer = "" # Clear buffer after thinking is done
+                elif "<think>" in chunk:
+                    is_thinking = True
+                    last_message_update_time = time.time()
+                    # Start of thinking, display a message
+                    try:
+                        message = next(message_iterator)
+                    except StopIteration:
+                        random.shuffle(thinking_messages)
+                        message_iterator = iter(thinking_messages)
+                        message = next(message_iterator)
                     
-                    # Create a better formatted display for streaming content
+                    live_display.update(Panel(f"[bold cyan]{message}[/bold cyan]",
+                                              title="[bold blue]🧠 The selected model is a Thinking one... Let it do the magic[/bold blue]",
+                                              border_style="cyan",
+                                              expand=True,
+                                              padding=(1, 2)))
+                else:
+                    enhanced_prompt += chunk
+                    chunk_count += 1
                     
-                    # Create a panel with the streaming content
-                    content_panel = Panel(
-                        Text(content_preview, style="yellow"),
-                        title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
-                        border_style="green",
-                        expand=True,  # Allow panel to expand with content
-                        padding=(1, 2)
-                    )
-                    
-                    # Create table with spinner and content panel
-                    display_table = Table.grid(padding=1)
-                    display_table.add_column(width=5)  # For spinner
-                    display_table.add_column()
-                    display_table.add_row(
-                        Spinner("dots", style="green"),
-                        content_panel
-                    )
-                    live_display.update(display_table)
+                    # Update display with current content
+                    if enhanced_prompt:
+                        # Show streaming content with spinner
+                        content_preview = enhanced_prompt
+                        # Show full content without artificial limits for reasonable lengths
+                        # Only add ellipsis for very long content to prevent display issues
+                        if len(content_preview) > 2000:
+                            content_preview = content_preview[:2000] + "\n... (content truncated for display)"
+                        
+                        # Create a better formatted display for streaming content
+                        
+                        # Create a panel with the streaming content
+                        content_panel = Panel(
+                            Text(content_preview, style="yellow"),
+                            title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
+                            border_style="green",
+                            expand=True,  # Allow panel to expand with content
+                            padding=(1, 2)
+                        )
+                        
+                        # Create table with spinner and content panel
+                        display_table = Table.grid(padding=1)
+                        display_table.add_column(width=5)  # For spinner
+                        display_table.add_column()
+                        display_table.add_row(
+                            Spinner("dots", style="green"),
+                            content_panel
+                        )
+                        live_display.update(display_table)
             
             # Check if we received any content
             if chunk_count == 0:
@@ -1023,7 +1116,7 @@ def run_template_editor(console, config):
                     # Show template content
                     content = enhancer.templates.get(template_name, "")
                     console.print(f"\n[bold]Template: {template_name}[/bold]")
-                    console.print(Panel(content, title="Current Content", border_style="blue"))
+                    console.print(Panel(content, title="Current Content", border_style="blue") )
                     
                     # Ask if user wants to edit
                     if questionary.confirm("Edit this template?").ask():
