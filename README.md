@@ -163,5 +163,5 @@ This project is open-source and available under the MIT License. See the [LICENS
 ---
 
 <div align="center">
-  <p>Made with ❤️ by <a href="https://hariharen9.site">Hariharen</a></p>
+  <p>Made with ❤️ by <a href="https://hariharen.site">Hariharen</a></p>
 </div>
