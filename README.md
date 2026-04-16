@@ -1,10 +1,10 @@
 # ENHANCE ✨ Your AI Prompts, Instantly.
 
 [![PyPI - Version](https://img.shields.io/pypi/v/enhance-this?style=for-the-badge)](https://pypi.org/project/enhance-this/)
-[![Total Downloads](https://pepy.tech/badge/enhance-this)](https://pypi.org/project/enhance-this/)
 [![npm - Version](https://img.shields.io/npm/v/enhance-this?style=for-the-badge)](https://www.npmjs.com/package/enhance-this)
 [![Homebrew - Version](https://img.shields.io/github/v/release/hariharen9/enhance-this?style=for-the-badge&label=homebrew)](https://github.com/hariharen9/homebrew-tap)
 [![License](https://img.shields.io/github/license/hariharen9/enhance-this?style=for-the-badge)](LICENSE)
+[![Total Downloads](https://pepy.tech/badge/enhance-this)](https://pypi.org/project/enhance-this/)
 
 Tired of generic AI responses? **`enhance-this`** is your secret weapon. This lightning-fast CLI tool transforms your simple ideas into rich, detailed prompts, ensuring you get the best possible output from any AI model. It runs 100% locally using Ollama, so your data stays private.
 
