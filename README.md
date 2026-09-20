@@ -2,7 +2,6 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/enhance-this?style=for-the-badge)](https://pypi.org/project/enhance-this/)
 [![npm - Version](https://img.shields.io/npm/v/enhance-this?style=for-the-badge)](https://www.npmjs.com/package/enhance-this)
-[![Homebrew - Version](https://img.shields.io/github/v/release/hariharen9/enhance-this?style=for-the-badge&label=homebrew)](https://github.com/hariharen9/homebrew-tap)
 [![License](https://img.shields.io/github/license/hariharen9/enhance-this?style=for-the-badge)](LICENSE)
 [![Total Downloads](https://pepy.tech/badge/enhance-this)](https://pypi.org/project/enhance-this/)
 
@@ -81,11 +80,6 @@ pip install enhance-this
 **NPM**:
 ```bash
 npm install -g enhance-this
-```
-
-**Homebrew (macOS & Linux)**:
-```bash
-brew install hariharen9/tap/enhance-this
 ```
 
 ---
