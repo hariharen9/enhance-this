@@ -1,23 +1,31 @@
 #!/bin/bash
 
+VERSION_FILE="enhance_this/version.py"
+PACKAGE_JSON="package.json"
+
 # Check if a new version argument is provided
 if [ -z "$1" ]; then
   echo "Usage: $0 <new_version>"
-  echo "Example: $0 0.1.2"
+  echo "Example: $0 0.4.1"
   exit 1
 fi
 
 NEW_VERSION="$1"
-# Extract current version from pyproject.toml
-OLD_PYPROJECT_VERSION=$(grep -m 1 'version = ' pyproject.toml | awk -F'"' '{print $2}')
-# Extract current version from package.json
-OLD_PACKAGE_VERSION=$(grep -m 1 '"version":' package.json | awk -F'"' '{print $4}') # Assuming "version": "X.Y.Z" 
+
+# Extract the current version from version.py (the single source of truth).
+# pyproject.toml reads its version dynamically from this file via
+# [tool.setuptools.dynamic]; package.json mirrors it for the npm wrapper.
+OLD_VERSION=$(grep -m 1 '__version__' "$VERSION_FILE" | sed 's/.*"\(.*\)".*/\1/')
+
+if [ -z "$OLD_VERSION" ]; then
+  echo "✖ Could not read the current version from $VERSION_FILE. Aborting."
+  exit 1
+fi
 
 echo "----------------------------------------"
 echo "  Automated Release Script"
 echo "----------------------------------------"
-echo "  Current pyproject.toml version: $OLD_PYPROJECT_VERSION"
-echo "  Current package.json version:   $OLD_PACKAGE_VERSION"
+echo "  Current enhance_this/version.py: $OLD_VERSION"
 echo "  New version to set:             $NEW_VERSION"
 echo "----------------------------------------"
 
@@ -29,28 +37,25 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-# Update pyproject.toml
-echo "Updating pyproject.toml to version $NEW_VERSION..."
-# Use sed -i '' for macOS compatibility (no backup file)
-# Use sed -i for Linux compatibility
+# Update enhance_this/version.py (the canonical version).
+echo "Updating $VERSION_FILE to version $NEW_VERSION..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  sed -i '' "s/version = \"$OLD_PYPROJECT_VERSION\"/version = \"$NEW_VERSION\"/" pyproject.toml
+  sed -i '' "s/^__version__ = .*/__version__ = \"$NEW_VERSION\"/" "$VERSION_FILE"
 else
-  sed -i "s/version = \"$OLD_PYPROJECT_VERSION\"/version = \"$NEW_VERSION\"/" pyproject.toml
+  sed -i "s/^__version__ = .*/__version__ = \"$NEW_VERSION\"/" "$VERSION_FILE"
 fi
 
-# Update package.json
-echo "Updating package.json to version $NEW_VERSION..."
+# Mirror the version into package.json for the npm wrapper.
+echo "Updating $PACKAGE_JSON to version $NEW_VERSION..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  sed -i '' "s/^[[:space:]]*\"version\": \"$OLD_PACKAGE_VERSION\"/  \"version\": \"$NEW_VERSION\"/" package.json
+  sed -i '' "s/^[[:space:]]*\"version\": \".*\"/  \"version\": \"$NEW_VERSION\"/" "$PACKAGE_JSON"
 else
-  sed -i "s/^[[:space:]]*\"version\": \"$OLD_PACKAGE_VERSION\"/  \"version\": \"$NEW_VERSION\"/" package.json
+  sed -i "s/^[[:space:]]*\"version\": \".*\"/  \"version\": \"$NEW_VERSION\"/" "$PACKAGE_JSON"
 fi
-
 
 # Add changes to Git
 echo "Adding version changes to Git..."
-git add pyproject.toml package.json
+git add "$VERSION_FILE" "$PACKAGE_JSON"
 
 # Commit changes
 echo "Committing version bump..."

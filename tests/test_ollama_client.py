@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from enhance_this.ollama_client import OllamaClient
+from enhance_this.ollama_client import OllamaClient, OllamaError, OllamaTimeoutError
 import requests
 import json
 
@@ -61,13 +61,13 @@ def test_generate_stream_success(ollama_client, mock_requests_session):
 
 def test_generate_stream_timeout(ollama_client, mock_requests_session):
     mock_requests_session.post.side_effect = requests.exceptions.Timeout
-    chunks = list(ollama_client.generate_stream("llama2", "prompt", 0.7, 200))
-    assert chunks == []
+    with pytest.raises(OllamaTimeoutError):
+        list(ollama_client.generate_stream("llama2", "prompt", 0.7, 200))
 
 def test_generate_stream_request_exception(ollama_client, mock_requests_session):
     mock_requests_session.post.side_effect = requests.RequestException
-    chunks = list(ollama_client.generate_stream("llama2", "prompt", 0.7, 200))
-    assert chunks == []
+    with pytest.raises(OllamaError):
+        list(ollama_client.generate_stream("llama2", "prompt", 0.7, 200))
 
 # Integration Test (requires Ollama running with llama2 model)
 @pytest.mark.skip(reason="Integration test: requires Ollama running with llama2 model")

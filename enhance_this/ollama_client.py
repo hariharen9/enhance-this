@@ -8,6 +8,19 @@ import platform
 
 console = Console()
 
+
+class OllamaError(Exception):
+    """Base error for communication failures with the Ollama service."""
+
+
+class OllamaConnectionError(OllamaError):
+    """The Ollama service could not be reached."""
+
+
+class OllamaTimeoutError(OllamaError):
+    """A request to Ollama exceeded its timeout."""
+
+
 class OllamaClient:
     def __init__(self, host: str, timeout: int):
         self.host = host
@@ -116,7 +129,7 @@ class OllamaClient:
             console.print(f"[red]✖[/red] Failed to preload model '{model_name}': {e}")
 
     def generate_stream(self, model: str, prompt: str, temperature: float, max_tokens: int) -> Iterator[str]:
-        try:
+            try:
                 response = self.session.post(
                     f"{self.host}/api/generate",
                     json={
@@ -138,14 +151,14 @@ class OllamaClient:
                         yield data.get("response", "")
                         if data.get("done"):
                             break
-        except requests.exceptions.ConnectionError:
-            console.print(f"[red]✖[/red] Connection error with Ollama service.\n"
-                         f"[yellow]Please check if Ollama is running.[/yellow]")
-            raise
-        except requests.exceptions.Timeout:
-            console.print(f"[red]✖[/red] Ollama request timed out after {self.timeout} seconds.\n"
-                         f"[yellow]Try increasing the timeout in your config or using a smaller model.[/yellow]")
-            raise
-        except requests.RequestException as e:
-            console.print(f"[red]✖[/red] Error communicating with Ollama: {e}")
-            raise
+            except requests.exceptions.ConnectionError:
+                raise OllamaConnectionError(
+                    "Connection error with Ollama service. Please check if Ollama is running."
+                ) from None
+            except requests.exceptions.Timeout:
+                raise OllamaTimeoutError(
+                    f"Ollama request timed out after {self.timeout} seconds. "
+                    "Try increasing the timeout in your config or using a smaller model."
+                ) from None
+            except requests.RequestException as e:
+                raise OllamaError(f"Error communicating with Ollama: {e}") from e

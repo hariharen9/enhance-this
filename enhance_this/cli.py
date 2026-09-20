@@ -1,6 +1,5 @@
 import click
 import questionary
-import requests
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -15,7 +14,11 @@ import time
 import random
 
 from .config import load_config, create_default_config_if_not_exists
-from .ollama_client import OllamaClient
+from .ollama_client import (
+    OllamaClient,
+    OllamaConnectionError,
+    OllamaTimeoutError,
+)
 from .enhancer import PromptEnhancer
 from .clipboard import copy_to_clipboard
 from .history import save_enhancement, load_history
@@ -29,7 +32,7 @@ from .history import save_enhancement, load_history
 @click.option('-v', '--verbose', is_flag=True, help='Enable verbose output')
 @click.option('-n', '--no-copy', is_flag=True, help="Don't copy to clipboard")
 @click.option('-o', '--output', 'output_file', type=click.File('w'), help='Save enhanced prompt to file')
-@click.option('-s', '--style', type=click.Choice(['detailed', 'concise', 'creative', 'technical', 'json', 'bullets', 'summary', 'formal', 'casual']), help='Enhancement style')
+@click.option('-s', '--style', type=click.STRING, help='Enhancement style (built-in or custom)')
 @click.option('--diff', is_flag=True, help='Show a diff between the original and enhanced prompt')
 @click.option('--list-models', is_flag=True, help='List available Ollama models')
 @click.option('--download-model', 'download_model_name', help='Download specific model from Ollama')
@@ -94,7 +97,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             if model in available_models:
                 model_to_preload = model
                 break
-        
+
         if not model_to_preload:
             model_to_preload = available_models[0]
 
@@ -134,12 +137,12 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             history_table = Table(title="History Details", border_style="green")
             history_table.add_column("Property", style="cyan", no_wrap=True)
             history_table.add_column("Value", style="magenta")
-            
+
             history_table.add_row("Original Prompt", selected_entry['original_prompt'])
             history_table.add_row("Enhanced Prompt", selected_entry['enhanced_prompt'])
             history_table.add_row("Style", selected_entry['style'])
             history_table.add_row("Model", selected_entry['model'])
-            
+
             console.print(history_table)
 
             if questionary.confirm("Copy enhanced prompt to clipboard?").ask():
@@ -160,7 +163,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
         enhancer = PromptEnhancer(config.get('enhancement_templates'))
         available_styles = list(enhancer.templates.keys())
-        
+
         # Enhanced Ollama connection check
         try:
             if not client.is_running():
@@ -207,17 +210,17 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         if model_name and model_name not in available_models:
             console.print(Panel(
                 f"[red]✖ Model '{model_name}' not found.[/red]\n\n"
-                f"[bold]Available models:[/bold]\n" + 
+                f"[bold]Available models:[/bold]\n" +
                 "\n".join([f"• {model}" for model in available_models]),
                 title="Model Error",
                 border_style="red"
             ))
             sys.exit(1)
-        
+
         final_model = model_name or config.get('preferred_models', ["llama3.1:8b", "llama3", "mistral"])[0]
 
         console.print(f"[bold blue]🤖 Using model:[/bold blue] [cyan]{final_model}[/cyan]")
-        
+
         current_prompt = ""
         enhanced_prompt = ""
         current_style = config.get('default_style', 'detailed')
@@ -230,156 +233,39 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                         break
 
                 system_prompt = enhancer.enhance(current_prompt, current_style)
-                
-                # Enhanced loading experience with streaming
-                enhanced_prompt = ""
-                
-                # Use Live for streaming output with a spinner
-                with Live(console=console, auto_refresh=True, refresh_per_second=4) as live_display:
-                    # Create initial display with spinner
-                    
-                    # Create initial display with spinner and panel
-                    
-                    initial_panel = Panel(
-                        "[cyan]Enhancing your prompt with AI model...[/cyan]\n"
-                        "[dim]This may take a moment for larger models.[/dim]",
-                        title="[bold blue]🚀 Enhancement in Progress[/bold blue]",
-                        border_style="cyan",
-                        expand=True,
-                        padding=(1, 2)
+
+                # Stream the enhancement with a live UI (single source for this
+                # logic, shared with the non-interactive path).
+                try:
+                    enhanced_prompt = _stream_generate_with_live(
+                        client, final_model, system_prompt, 0.7, 2000, console,
+                        spinner_name="dots9", content_style="magenta",
                     )
-                    
-                    display_table = Table.grid(padding=1)
-                    display_table.add_column(width=5)  # For spinner
-                    display_table.add_column()
-                    display_table.add_row(Spinner("dots", style="cyan"), initial_panel)
-                    live_display.update(display_table)
-                    
-                    # Actual enhancement with streaming
-                    chunk_count = 0
-                    is_thinking = False
-                    think_buffer = ""
+                except OllamaConnectionError:
+                    console.print(Panel(
+                        "[red]✖ Connection error with Ollama service.[/red]\n"
+                        "[yellow]Please check if Ollama is running and try again.[/yellow]",
+                        title="Connection Error",
+                        border_style="red"
+                    ))
+                    continue
+                except OllamaTimeoutError:
+                    console.print(Panel(
+                        "[red]✖ Request timed out.[/red]\n"
+                        "[yellow]The model may still be loading. Please try again.[/yellow]",
+                        title="Timeout Error",
+                        border_style="red"
+                    ))
+                    continue
+                except KeyboardInterrupt:
+                    console.print(Panel(
+                        "[yellow]⚠ Operation cancelled by user.[/yellow]\n\n"
+                        "[dim]You can resume your session later.[/dim]",
+                        title="Cancelled",
+                        border_style="yellow"
+                    ))
+                    break
 
-                    # Custom thinking messages
-                    thinking_messages = [
-                        "The AI is pondering...",
-                        "Analyzing the request...",
-                        "Consulting the digital muses...",
-                        "Crafting a response...",
-                        "The gears of thought are turning...",
-                        "Unraveling the query...",
-                        "Formulating a brilliant reply...",
-                    ]
-                    random.shuffle(thinking_messages)
-                    message_iterator = iter(thinking_messages)
-
-                    try:
-                        for i, chunk in enumerate(client.generate_stream(final_model, system_prompt, 0.7, 2000)):
-                            if is_thinking:
-                                think_buffer += chunk
-                                if "</think>" in think_buffer:
-                                    is_thinking = False
-                                    think_buffer = "" # Clear buffer after thinking is done
-                            elif "<think>" in chunk:
-                                is_thinking = True
-                                # Start of thinking, display a message
-                                try:
-                                    message = next(message_iterator)
-                                except StopIteration:
-                                    random.shuffle(thinking_messages)
-                                    message_iterator = iter(thinking_messages)
-                                    message = next(message_iterator)
-
-                                live_display.update(Panel(f"[bold cyan]{message}[/bold cyan]",
-                                                          title="[bold blue]🧠 The selected model is a Thinking one... Let it do the magic[/bold blue]",
-                                                          border_style="cyan",
-                                                          expand=True,
-                                                          padding=(1, 2)))
-                            else:
-                                enhanced_prompt += chunk
-                                chunk_count += 1
-                                
-                                # Update display with current content
-                                if enhanced_prompt:
-                                    # Show streaming content with spinner
-                                    content_preview = enhanced_prompt
-                                    # Limit preview length but show more content
-                                    if len(content_preview) > 2000:
-                                        content_preview = content_preview[:2000] + "\n... (content truncated for display)"
-                                    
-                                    # Create a better formatted display for streaming content
-                                                        
-                                    # Create a panel with the streaming content
-                                    content_panel = Panel(
-                                        Text(content_preview, style="magenta"),
-                                        title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
-                                        border_style="green",
-                                        expand=True,  # Allow panel to expand with content
-                                        padding=(1, 2)
-                                    )
-                                                        
-                                    # Create table with spinner and content panel
-                                    display_table = Table.grid(padding=1)
-                                    display_table.add_column(width=5)  # For spinner
-                                    display_table.add_column()
-                                    display_table.add_row(
-                                        Spinner("dots9", style="green"),
-                                        content_panel
-                                    )
-                                    live_display.update(display_table)
-                    except requests.exceptions.ConnectionError:
-                        console.print(Panel(
-                            "[red]✖ Connection error with Ollama service.[/red]\n"
-                            "[yellow]Please check if Ollama is running and try again.[/yellow]",
-                            title="Connection Error",
-                            border_style="red"
-                        ))
-                        continue
-                    except requests.exceptions.Timeout:
-                        console.print(Panel(
-                            "[red]✖ Request timed out.[/red]\n"
-                            "[yellow]The model may still be loading. Please try again.[/yellow]",
-                            title="Timeout Error",
-                            border_style="red"
-                        ))
-                        continue
-                    except KeyboardInterrupt:
-                        console.print(Panel(
-                            "[yellow]⚠ Operation cancelled by user.[/yellow]\n\n"
-                            "[dim]You can resume your session later.[/dim]",
-                            title="Cancelled",
-                            border_style="yellow"
-                        ))
-                        break
-                    except Exception as e:
-                        console.print(Panel(
-                            f"[red]✖ Error during enhancement:[/red]\n{str(e)}\n\n"
-                            f"[yellow]Please try again or use a different model.[/yellow]",
-                            title="Enhancement Error",
-                            border_style="red"
-                        ))
-                        continue
-                    
-                    # Check if we received any content
-                    if chunk_count == 0:
-                        console.print("[yellow]⚠[/yellow] Warning: No response received from model.")
-                    
-                    # Show completion with enhanced visual feedback
-                    completion_panel = Panel(
-                        "[green]✨ Enhancement complete! AI response generated successfully.[/green]",
-                        title="[bold green]✅ Success[/bold green]",
-                        border_style="green",
-                        expand=False,
-                        padding=(1, 2)
-                    )
-                    
-                    display_table = Table.grid(padding=1)
-                    display_table.add_column(width=5)
-                    display_table.add_column()
-                    display_table.add_row("[green]✔[/green]", completion_panel)
-                    live_display.update(display_table)
-                    time.sleep(0.8)  # Longer pause for visual feedback
-                
                 # Enhanced prompt display
                 console.print("\n[bold magenta]✨ Enhanced Prompt ✨[/bold magenta]")
                 console.print(Panel(Markdown(enhanced_prompt), 
@@ -506,7 +392,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
                 border_style="red"
             ))
         return
-        
+    
     available_models = []
     try:
         available_models = client.list_models()
@@ -572,8 +458,8 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
         if model_name not in available_models:
             console.print(Panel(
                 f"[red]✖ Model '{model_name}' not found.[/red]\n\n"
-                f"[bold]Available models:[/bold]\n" + 
-                ("\n".join([f"• {model}" for model in available_models]) if available_models else "[yellow]No models available[/yellow]") + 
+                f"[bold]Available models:[/bold]\n" +
+                ("\n".join([f"• {model}" for model in available_models]) if available_models else "[yellow]No models available[/yellow]") +
                 "\n\n[bold]To install models:[/bold]\n"
                 "• Run [cyan]enhance --auto-setup[/cyan]\n"
                 "• Or manually: [cyan]ollama pull <model-name>[/cyan]",
@@ -623,155 +509,30 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
 
     enhancer = PromptEnhancer(config.get('enhancement_templates'))
 
+    if final_style not in enhancer.templates:
+        console.print(Panel(
+            f"[red]✖ Unknown style '{final_style}'.[/red]\n\n"
+            f"[bold]Available styles:[/bold] {', '.join(sorted(enhancer.templates))}",
+            title="Style Error",
+            border_style="red"
+        ))
+        sys.exit(1)
+
     system_prompt = enhancer.enhance(prompt, final_style)
 
     if verbose:
         console.print("\n[bold blue]🔧 System Prompt:[/bold blue]")
         console.print(Panel(system_prompt, title="System Prompt", border_style="dim"))
 
-    enhanced_prompt = ""
-    
-    # Enhanced loading experience with dynamic messages and streaming
+    # Stream the enhancement with a live UI (single source for this logic,
+    # shared with interactive mode).
     console.print("[bold blue]🤖 Generating enhanced prompt...[/bold blue]")
-    
-    try:
-        stream_generator = client.generate_stream(final_model, system_prompt, final_temperature, final_max_tokens)
-        
-        # Use Live for streaming output with a spinner
-        with Live(console=console, auto_refresh=True, refresh_per_second=4) as live_display:
-            # Create initial display with spinner
-            
-            # Create initial display with spinner and panel
-            
-            initial_panel = Panel(
-                "[cyan]Loading model and generating response...[/cyan]\n"
-                "[dim]This may take a moment for larger models.[/dim]",
-                title="[bold blue]🧠 AI Generation in Progress[/bold blue]",
-                border_style="cyan",
-                expand=True,
-                padding=(1, 2)
-            )
-            
-            display_table = Table.grid(padding=1)
-            display_table.add_column(width=5)  # For spinner
-            display_table.add_column()
-            display_table.add_row(Spinner("dots", style="cyan"), initial_panel)
-            live_display.update(display_table)
-            
-            # Collect the output with streaming
-            chunk_count = 0
-            is_thinking = False
-            think_buffer = ""
-            
-            # Custom thinking messages
-            thinking_messages = [
-                "The AI is pondering...",
-                "Analyzing the request...",
-                "Consulting the digital muses...",
-                "Crafting a response...",
-                "The gears of thought are turning...",
-                "Unraveling the query...",
-                "Formulating a brilliant reply...",
-                "Just a moment, weaving some magic...",
-                "The model is in deep thought...",
-                "Let's see what the AI comes up with...",
-                "Brewing a creative response...",
-            ]
-            random.shuffle(thinking_messages)
-            message_iterator = iter(thinking_messages)
-            last_message_update_time = 0
 
-            for i, chunk in enumerate(stream_generator):
-                if is_thinking:
-                    think_buffer += chunk
-                    if time.time() - last_message_update_time > 2:
-                        try:
-                            message = next(message_iterator)
-                        except StopIteration:
-                            random.shuffle(thinking_messages)
-                            message_iterator = iter(thinking_messages)
-                            message = next(message_iterator)
-                        live_display.update(Panel(f"[bold cyan]{message}[/bold cyan]",
-                                                  title="[bold blue]🧠 The selected model is a Thinking one... Let it do the magic[/bold blue]",
-                                                  border_style="cyan",
-                                                  expand=True,
-                                                  padding=(1, 2)))
-                        last_message_update_time = time.time()
-                    if "</think>" in think_buffer:
-                        is_thinking = False
-                        think_buffer = "" # Clear buffer after thinking is done
-                elif "<think>" in chunk:
-                    is_thinking = True
-                    last_message_update_time = time.time()
-                    # Start of thinking, display a message
-                    try:
-                        message = next(message_iterator)
-                    except StopIteration:
-                        random.shuffle(thinking_messages)
-                        message_iterator = iter(thinking_messages)
-                        message = next(message_iterator)
-                    
-                    live_display.update(Panel(f"[bold cyan]{message}[/bold cyan]",
-                                              title="[bold blue]🧠 The selected model is a Thinking one... Let it do the magic[/bold blue]",
-                                              border_style="cyan",
-                                              expand=True,
-                                              padding=(1, 2)))
-                else:
-                    enhanced_prompt += chunk
-                    chunk_count += 1
-                    
-                    # Update display with current content
-                    if enhanced_prompt:
-                        # Show streaming content with spinner
-                        content_preview = enhanced_prompt
-                        # Show full content without artificial limits for reasonable lengths
-                        # Only add ellipsis for very long content to prevent display issues
-                        if len(content_preview) > 2000:
-                            content_preview = content_preview[:2000] + "\n... (content truncated for display)"
-                        
-                        # Create a better formatted display for streaming content
-                        
-                        # Create a panel with the streaming content
-                        content_panel = Panel(
-                            Text(content_preview, style="yellow"),
-                            title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
-                            border_style="green",
-                            expand=True,  # Allow panel to expand with content
-                            padding=(1, 2)
-                        )
-                        
-                        # Create table with spinner and content panel
-                        display_table = Table.grid(padding=1)
-                        display_table.add_column(width=5)  # For spinner
-                        display_table.add_column()
-                        display_table.add_row(
-                            Spinner("dots", style="green"),
-                            content_panel
-                        )
-                        live_display.update(display_table)
-            
-            # Check if we received any content
-            if chunk_count == 0:
-                console.print("[yellow]⚠[/yellow] Warning: No response received from model.")
-            
-            # Show completion with enhanced visual feedback
-            
-            completion_panel = Panel(
-                "[green]✨ Enhancement complete! AI response generated successfully.[/green]",
-                title="[bold green]✅ Success[/bold green]",
-                border_style="green",
-                expand=False,
-                padding=(1, 2)
-            )
-            
-            display_table = Table.grid(padding=1)
-            display_table.add_column(width=5)
-            display_table.add_column()
-            display_table.add_row("[green]✔[/green]", completion_panel)
-            live_display.update(display_table)
-            time.sleep(0.8)  # Longer pause for visual feedback
-            
-    except requests.exceptions.ConnectionError:
+    try:
+        enhanced_prompt = _stream_generate_with_live(
+            client, final_model, system_prompt, final_temperature, final_max_tokens, console
+        )
+    except OllamaConnectionError:
         console.print(Panel(
             "[red]✖ Connection error with Ollama service.[/red]\n\n"
             "[bold]Troubleshooting steps:[/bold]\n"
@@ -783,7 +544,7 @@ def enhance(prompt, model_name, temperature, max_tokens, config_path, verbose, n
             border_style="red"
         ))
         sys.exit(1)
-    except requests.exceptions.Timeout:
+    except OllamaTimeoutError:
         console.print(Panel(
             "[red]✖ Request timed out while communicating with Ollama.[/red]\n\n"
             "[yellow]This might happen if:[/yellow]\n"
@@ -910,12 +671,12 @@ def run_config_wizard(console, config_path):
     """Run the interactive configuration wizard for first-time setup."""
     from .config import get_config_path, DEFAULT_CONFIG
     import yaml
-    
+
     console.print(Panel("[bold blue]🔧 Configuration Wizard[/bold blue]\n"
                        "Let's set up enhance-this for optimal performance!\n"
                        "[dim]Press Ctrl+C anytime to exit.[/dim]",
                        title="Welcome", border_style="blue"))
-    
+
     try:
         # Get current config path
         config_file_path = get_config_path(config_path)
@@ -1018,18 +779,19 @@ def run_config_wizard(console, config_path):
         console.print(Panel(f"[red]❌ Error saving configuration:[/red]\n{str(e)}",
                            title="Error", border_style="red"))
 
+
 def run_template_editor(console, config):
     """Launch the visual template editor."""
     from .config import get_config_dir
     from .enhancer import PromptEnhancer
     import os
     import tempfile
-    
+
     console.print(Panel("[bold magenta]🎨 Visual Template Editor[/bold magenta]\n"
                        "Create and edit custom prompt templates\n"
                        "[dim]Press Ctrl+C anytime to exit.[/dim]",
                        title="Template Editor", border_style="magenta"))
-    
+
     try:
         # Get templates directory
         templates_dir = get_config_dir() / "templates"
@@ -1116,7 +878,7 @@ def run_template_editor(console, config):
                     # Show template content
                     content = enhancer.templates.get(template_name, "")
                     console.print(f"\n[bold]Template: {template_name}[/bold]")
-                    console.print(Panel(content, title="Current Content", border_style="blue") )
+                    console.print(Panel(content, title="Current Content", border_style="blue"))
                     
                     # Ask if user wants to edit
                     if questionary.confirm("Edit this template?").ask():
@@ -1166,6 +928,129 @@ def run_template_editor(console, config):
     except Exception as e:
         console.print(Panel(f"[red]❌ Error in template editor:[/red]\n{str(e)}",
                            title="Error", border_style="red"))
+
+
+# Shared streaming/display logic, used by both interactive and one-shot modes.
+THINKING_MESSAGES = [
+    "The AI is pondering...",
+    "Analyzing the request...",
+    "Consulting the digital muses...",
+    "Crafting a response...",
+    "The gears of thought are turning...",
+    "Unraveling the query...",
+    "Formulating a brilliant reply...",
+    "Just a moment, weaving some magic...",
+    "The model is in deep thought...",
+    "Brewing a creative response...",
+]
+
+
+def _show_thinking(console, live_display, messages):
+    live_display.update(Panel(
+        f"[bold cyan]{random.choice(messages)}[/bold cyan]",
+        title="[bold blue]🧠 The selected model is a Thinking one... Let it do the magic[/bold blue]",
+        border_style="cyan",
+        expand=True,
+        padding=(1, 2),
+    ))
+
+
+def _stream_generate_with_live(
+    client,
+    final_model,
+    system_prompt,
+    temperature,
+    max_tokens,
+    console,
+    *,
+    spinner_name="dots",
+    content_style="yellow",
+):
+    """Stream a model response with a rich live UI and return the full text.
+
+    Raises OllamaConnectionError / OllamaTimeoutError on transport failures so
+    callers decide how to recover (exit vs retry).
+    """
+    thinking_messages = list(THINKING_MESSAGES)
+    random.shuffle(thinking_messages)
+
+    enhanced_prompt = ""
+    is_thinking = False
+    think_buffer = ""
+    chunk_count = 0
+    last_message_update_time = 0.0
+
+    stream_generator = client.generate_stream(
+        final_model, system_prompt, temperature, max_tokens
+    )
+
+    with Live(console=console, auto_refresh=True, refresh_per_second=4) as live_display:
+        initial_panel = Panel(
+            "[cyan]Loading model and generating response...[/cyan]\n"
+            "[dim]This may take a moment for larger models.[/dim]",
+            title="[bold blue]🧠 AI Generation in Progress[/bold blue]",
+            border_style="cyan",
+            expand=True,
+            padding=(1, 2),
+        )
+        display_table = Table.grid(padding=1)
+        display_table.add_column(width=5)
+        display_table.add_column()
+        display_table.add_row(Spinner(spinner_name, style="cyan"), initial_panel)
+        live_display.update(display_table)
+
+        for chunk in stream_generator:
+            if is_thinking:
+                think_buffer += chunk
+                if time.time() - last_message_update_time > 2:
+                    _show_thinking(console, live_display, thinking_messages)
+                    last_message_update_time = time.time()
+                if " response" in think_buffer:
+                    is_thinking = False
+                    think_buffer = ""
+            elif " thinking" in chunk:
+                is_thinking = True
+                last_message_update_time = time.time()
+                _show_thinking(console, live_display, thinking_messages)
+            else:
+                enhanced_prompt += chunk
+                chunk_count += 1
+                if enhanced_prompt:
+                    content_preview = enhanced_prompt
+                    if len(content_preview) > 2000:
+                        content_preview = content_preview[:2000] + "\n... (content truncated for display)"
+                    content_panel = Panel(
+                        Text(content_preview, style=content_style),
+                        title=f"[cyan]Streaming Response[/cyan] [dim]Using 🤖: {final_model}[/dim]",
+                        border_style="green",
+                        expand=True,
+                        padding=(1, 2),
+                    )
+                    display_table = Table.grid(padding=1)
+                    display_table.add_column(width=5)
+                    display_table.add_column()
+                    display_table.add_row(Spinner(spinner_name, style="green"), content_panel)
+                    live_display.update(display_table)
+
+        if chunk_count == 0:
+            console.print("[yellow]⚠[/yellow] Warning: No response received from model.")
+
+        completion_panel = Panel(
+            "[green]✨ Enhancement complete! AI response generated successfully.[/green]",
+            title="[bold green]✅ Success[/bold green]",
+            border_style="green",
+            expand=False,
+            padding=(1, 2),
+        )
+        display_table = Table.grid(padding=1)
+        display_table.add_column(width=5)
+        display_table.add_column()
+        display_table.add_row("[green]✔[/green]", completion_panel)
+        live_display.update(display_table)
+        time.sleep(0.8)
+
+    return enhanced_prompt
+
 
 if __name__ == '__main__':
     enhance()

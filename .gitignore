@@ -54,5 +54,8 @@ htmlcov/
 # NPM wrapper build artifacts
 node_modules/
 
+# uv-generated lockfile (dev-only; not required to build/publish)
+uv.lock
+
 # Homebrew tap (if you develop the tap within the main repo, which is uncommon)
 # Formula/

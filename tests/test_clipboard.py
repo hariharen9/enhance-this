@@ -17,11 +17,16 @@ def test_copy_to_clipboard_success(mock_pyperclip_copy, mock_console_print):
     test_text = "This is a test string"
     clipboard.copy_to_clipboard(test_text)
     mock_pyperclip_copy.assert_called_once_with(test_text)
-    mock_console_print.assert_called_once_with("[green]✔[/green] Enhanced prompt copied to clipboard.")
+    mock_console_print.assert_called_once_with("[green]✔ Enhanced prompt copied to clipboard.[/green]")
 
-def test_copy_to_clipboard_failure(mock_pyperclip_copy, mock_console_print):
-    mock_pyperclip_copy.side_effect = clipboard.pyperclip.PyperclipException("Copy failed")
-    test_text = "This is a test string"
-    clipboard.copy_to_clipboard(test_text)
-    mock_pyperclip_copy.assert_called_once_with(test_text)
-    mock_console_print.assert_called_once_with("[yellow]⚠[/yellow] Could not copy to clipboard. `xclip` or `xsel` may be required on Linux.")
+    def test_copy_to_clipboard_failure(mock_pyperclip_copy, mock_console_print):
+        mock_pyperclip_copy.side_effect = clipboard.pyperclip.PyperclipException("Copy failed")
+        test_text = "This is a test string"
+        # Force the Linux branch so the assertion is OS-independent.
+        with patch.object(clipboard.platform, "system", return_value="Linux"):
+            clipboard.copy_to_clipboard(test_text)
+        mock_pyperclip_copy.assert_called_once_with(test_text)
+        mock_console_print.assert_called_once_with(
+            "[yellow]⚠[/yellow] Could not copy to clipboard. `xclip` or `xsel` may be required on Linux.\n"
+            "[dim]Install with: sudo apt-get install xclip or sudo yum install xclip[/dim]"
+        )

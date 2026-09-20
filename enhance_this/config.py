@@ -1,4 +1,5 @@
 import os
+import sys
 import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -34,8 +35,14 @@ def load_config(config_path_str: Optional[str] = None) -> Dict[str, Any]:
                 user_config = yaml.safe_load(f)
             if user_config:
                 config.update(user_config)
-        except (yaml.YAMLError, IOError):
-            pass  # Use default config if file is invalid
+        except (yaml.YAMLError, IOError) as e:
+                    # Warn visibly instead of silently falling back to defaults so a
+                    # typo in config.yaml doesn't cause confusing behavior.
+                    print(
+                        f"[enhance-this] Warning: could not parse config file "
+                        f"{config_path}: {e}. Using default settings.",
+                        file=sys.stderr,
+                    )
 
     # Discover custom templates
     custom_templates_dir = get_config_dir() / "templates"

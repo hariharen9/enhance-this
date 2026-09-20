@@ -1,7 +1,5 @@
 import pytest
-import os
 import yaml
-from pathlib import Path
 from enhance_this import config
 
 @pytest.fixture
@@ -10,12 +8,16 @@ def mock_config_path(tmp_path):
     test_config_dir = tmp_path / ".enhance-this"
     test_config_dir.mkdir()
     test_config_file = test_config_dir / "config.yaml"
-    
-    # Patch get_config_path to return our temporary path
+
+    # Patch get_config_path and get_config_dir to keep tests hermetic
+    # (no reads/writes to the user's real ~/.enhance-this directory).
     original_get_config_path = config.get_config_path
+    original_get_config_dir = config.get_config_dir
     config.get_config_path = lambda *args, **kwargs: test_config_file
+    config.get_config_dir = lambda: test_config_dir
     yield test_config_file
-    config.get_config_path = original_get_config_path # Restore original
+    config.get_config_path = original_get_config_path  # Restore original
+    config.get_config_dir = original_get_config_dir
 
 def test_create_default_config_if_not_exists(mock_config_path):
     # Ensure config file does not exist initially
@@ -26,7 +28,8 @@ def test_create_default_config_if_not_exists(mock_config_path):
 
     loaded_config = yaml.safe_load(mock_config_path.read_text())
     assert loaded_config["default_temperature"] == 0.7
-    assert "my_style" in loaded_config["enhancement_templates"]
+    # The example template is written next to the config, not into it.
+    assert (mock_config_path.parent / "templates" / "my_style.txt").exists()
 
 def test_load_config_default(mock_config_path):
     # No config file exists, should load default config
