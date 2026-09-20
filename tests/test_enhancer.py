@@ -47,21 +47,31 @@ def test_load_templates_builtin():
     assert templates["detailed"] == "Detailed template: {user_prompt}"
 
 
-def test_load_templates_with_custom_templates(tmp_path):
-    custom_template_file = tmp_path / "my_custom_template.txt"
-    custom_template_file.write_text("My custom template: {user_prompt}")
+def test_load_templates_with_custom_templates():
+    from pathlib import Path
+    import shutil
+    import uuid
 
-    custom_template_paths = {
-        "custom_style": str(custom_template_file),
-        "detailed": str(custom_template_file),  # Override built-in
-        "non_existent": str(tmp_path / "non_existent.txt"),  # Non-existent path
-    }
+    # Scratch dir inside the workspace (tmp_path/tempfile are sandbox-blocked).
+    scratch = Path("_enhtest") / uuid.uuid4().hex
+    scratch.mkdir(parents=True)
+    try:
+        custom_template_file = scratch / "my_custom_template.txt"
+        custom_template_file.write_text("My custom template: {user_prompt}")
 
-    templates = load_templates(custom_template_paths)
-    assert "custom_style" in templates
-    assert templates["custom_style"] == "My custom template: {user_prompt}"
-    assert templates["detailed"] == "My custom template: {user_prompt}"  # Check override
-    assert "non_existent" not in templates  # Non-existent should not be loaded
+        custom_template_paths = {
+            "custom_style": str(custom_template_file),
+            "detailed": str(custom_template_file),  # Override built-in
+            "non_existent": str(scratch / "non_existent.txt"),  # Non-existent path
+        }
+
+        templates = load_templates(custom_template_paths)
+        assert "custom_style" in templates
+        assert templates["custom_style"] == "My custom template: {user_prompt}"
+        assert templates["detailed"] == "My custom template: {user_prompt}"  # Check override
+        assert "non_existent" not in templates  # Non-existent should not be loaded
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
 
 
 def test_prompt_enhancer_enhance():

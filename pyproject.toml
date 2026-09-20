@@ -8,7 +8,7 @@ dynamic = ["version"]
 authors = [
   { name="Hariharen", email="thisishariharen@gmail.com" },
 ]
-description = "A CLI tool to enhance prompts using Ollama AI."
+description = "A CLI tool to enhance prompts using Ollama or any OpenAI-compatible API."
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [

@@ -1,12 +1,17 @@
 import pytest
 import yaml
+from pathlib import Path
+from unittest import mock
 from enhance_this import config
 
 @pytest.fixture
-def mock_config_path(tmp_path):
-    # Create a temporary config directory and file for testing
-    test_config_dir = tmp_path / ".enhance-this"
-    test_config_dir.mkdir()
+def mock_config_path():
+    # Create a temporary config directory and file for testing. Uses a scratch
+    # dir inside the workspace because the DSH sandbox blocks tmp_path/tempfile.
+    import shutil
+    import uuid
+    test_config_dir = Path("_cfgtst") / uuid.uuid4().hex
+    test_config_dir.mkdir(parents=True)
     test_config_file = test_config_dir / "config.yaml"
 
     # Patch get_config_path and get_config_dir to keep tests hermetic
@@ -18,6 +23,7 @@ def mock_config_path(tmp_path):
     yield test_config_file
     config.get_config_path = original_get_config_path  # Restore original
     config.get_config_dir = original_get_config_dir
+    shutil.rmtree(test_config_dir, ignore_errors=True)
 
 def test_create_default_config_if_not_exists(mock_config_path):
     # Ensure config file does not exist initially

@@ -7,6 +7,9 @@ from typing import Dict, Any, Optional
 DEFAULT_CONFIG = {
     "default_temperature": 0.7,
     "default_style": "detailed",
+    # Backend selector: "ollama" (local) or "api" (OpenAI-compatible APIs
+    # such as OpenRouter/OpenAI/Groq via your own key).
+    "provider": "ollama",
     "ollama_host": "http://localhost:11434",
     "timeout": 30,
     "max_tokens": 2000,
@@ -14,7 +17,22 @@ DEFAULT_CONFIG = {
     "display_colors": True,
     "auto_download_model": True,
     "enhancement_templates": {},
-    "preferred_models": ["llama3.1:8b", "llama3", "mistral"],
+    "preferred_models": ["gemma3:4b", "gemma3:1b", "llama3.1:8b", "llama3", "mistral"],
+    # Only used when provider == "api".
+    "api_provider": "openrouter",
+    "api_base_url": "https://openrouter.ai/api/v1",
+    "api_key": "",
+    # The most recently selected API model, so it is remembered across runs.
+    "api_model": "",
+    # A suggested cheap/fast default model, used only if the user has never
+    # picked one.
+    "api_default_model": "qwen/qwen3.8-27b:free",
+    "preferred_api_models": [
+        "qwen/qwen3.8-27b:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "liquid/lfm-2.5-2.6b:free",
+        "inclusionai/ling-3.0-flash-vl:free",
+    ],
 }
 
 def get_config_dir() -> Path:

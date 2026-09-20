@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/hariharen9/enhance-this?style=for-the-badge)](LICENSE)
 [![Total Downloads](https://pepy.tech/badge/enhance-this)](https://pypi.org/project/enhance-this/)
 
-Tired of generic AI responses? **`enhance-this`** is your secret weapon. This lightning-fast CLI tool transforms your simple ideas into rich, detailed prompts, ensuring you get the best possible output from any AI model. It runs 100% locally using Ollama, so your data stays private.
+Tired of generic AI responses? **`enhance-this`** is your secret weapon. This lightning-fast CLI tool transforms your simple ideas into rich, detailed prompts, ensuring you get the best possible output from any AI model. It runs locally using Ollama **or** any hosted API (OpenRouter, OpenAI, Groq, ...) with your own key.
 
 Whether you're a developer, writer, student, or AI enthusiast, `enhance-this` makes your interactions with AI more powerful and intuitive.
 
@@ -15,7 +15,8 @@ Whether you're a developer, writer, student, or AI enthusiast, `enhance-this` ma
 
 *   **Elevate Your Prompts**: Go from a basic idea like "write a blog post about AI" to a meticulously crafted prompt that gets superior results.
 *   **Boost Productivity**: Automate prompt engineering. Get the perfect prompt copied to your clipboard in seconds.
-*   **Stay Private**: Powered by your local Ollama models. Your data never leaves your computer.
+*   **Stay Private (or not)**: Powered by your local Ollama models by default, so your data never leaves your computer. Need more speed on a low-end PC? Use a hosted API with your own key.
+*   **Your Key, Your Choice**: Switch between local Ollama (auto-detected, choose any installed model) and a hosted API provider (OpenRouter, OpenAI, Groq, ...), and your chosen model is remembered.
 *   **Save Time & Effort**: Free yourself from the tedious task of writing detailed prompts.
 *   **Get Professional Results**: Consistently achieve better outputs from any AI model.
 
@@ -25,7 +26,8 @@ Whether you're a developer, writer, student, or AI enthusiast, `enhance-this` ma
 
 *   **Live Enhancement**: Watch your prompt get enhanced in real-time, right in your terminal.
 *   **Interactive Mode**: Iteratively refine prompts in a session with `enhance --interactive`.
-*   **Smart Model Management**: Intelligently finds and uses the best local Ollama model. No model? It can download one for you with `enhance --auto-setup`.
+*   **Two Backends**: Use local **Ollama** (auto-detect models, download one with `enhance --auto-setup`) or bring your own API key for **OpenRouter / OpenAI / Groq** and friends.
+*   **Model Memory**: Pick an API model once with `--model` and it's remembered across runs.
 *   **Customizable Styles**: Choose from built-in styles (`detailed`, `creative`, `technical`) or create your own.
 *   **Diff View**: Instantly see what's been improved with the `--diff` flag.
 *   **Seamless Workflow**: Automatically copies the final prompt, ready to paste anywhere.
@@ -66,15 +68,20 @@ enhance "write about sustainable fashion" -s creative
 
 ## ⚡ Get Started in Minutes
 
-### Prerequisite: Ollama
+No Ollama? No problem — you can use a hosted API right away:
 
-First, make sure you have [Ollama](https://ollama.com/) installed and running.
+```bash
+# Use OpenRouter (or any OpenAI-compatible API) with your own key
+pip install enhance-this
+enhance --provider api --api-key sk-or-... --save-key "review my Python code"
+```
 
-### Installation
+Prefer fully-local? [Install Ollama](https://ollama.com/), then:
 
-**PyPI**:
 ```bash
 pip install enhance-this
+enhance --auto-setup          # downloads a recommended model automatically
+enhance "review my Python code"
 ```
 
 **NPM**:
@@ -93,7 +100,8 @@ enhance --config-wizard
 ```
 
 The wizard will guide you through:
-- Setting your Ollama host address
+- Choosing your backend: **Ollama** (local) or **API** (bring your own key)
+- Setting your Ollama host address (Ollama) / API provider + key + default model (API)
 - Choosing your preferred enhancement style
 - Configuring generation temperature
 - Setting maximum response length
@@ -126,12 +134,16 @@ The template editor will automatically use your system's default editor (defined
 | Command                        | Description                                           |
 | ------------------------------ | ----------------------------------------------------- |
 | `enhance "..."`                | Enhance a prompt.                                     |
+| `enhance --provider api`       | Use a hosted API (OpenRouter/OpenAI/...) with your key.|
+| `enhance --provider ollama`    | Use local Ollama (default).                           |
+| `enhance -m <model>`           | Pick a model (remembered for the API provider).       |
+| `enhance --list-models`        | List models for the active provider.                  |
 | `enhance --interactive`        | Start an interactive session.                         |
 | `enhance --diff`               | Show a diff of the changes.                           |
 | `enhance -s <style>`           | Use a specific enhancement style.                     |
 | `enhance --history`            | View your enhancement history.                        |
-| `enhance --auto-setup`         | Download and set up a recommended model.              |
-| `enhance --preload-model`      | Load a model into memory for faster responses.        |
+| `enhance --auto-setup`         | Download and set up a recommended model (Ollama).     |
+| `enhance --preload-model`      | Load a model into memory for faster responses (Ollama).|
 | `enhance --config-wizard`      | Run the interactive configuration wizard.             |
 | `enhance --template-editor`    | Launch the visual template editor.                    |
 

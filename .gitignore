@@ -51,6 +51,16 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# Test scratch directories (created by hermetic tests that the DSH sandbox
+# blocks from using OS temp dirs)
+_testcfg/
+_enhtest/
+_cfgtst/
+_outtest/
+pmtest_*/
+pmtest_work/
+pmdir_manual/
+
 # NPM wrapper build artifacts
 node_modules/
 
